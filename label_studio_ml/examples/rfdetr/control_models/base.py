@@ -1,0 +1,194 @@
+import os
+import logging
+import uuid
+import xml.etree.ElementTree as ET
+
+from pydantic import BaseModel
+from typing import Optional, List, Dict, ClassVar
+from label_studio_ml.model import LabelStudioMLBase
+from label_studio_ml.utils import DATA_UNDEFINED_NAME
+from label_studio_sdk.label_interface.control_tags import ControlTag
+
+
+MODEL_SCORE_THRESHOLD = float(os.getenv("MODEL_SCORE_THRESHOLD", 0.5))
+DEFAULT_MODEL_ROOT = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models")
+MODEL_ROOT = os.getenv("MODEL_ROOT", DEFAULT_MODEL_ROOT)
+os.makedirs(MODEL_ROOT, exist_ok=True)
+ALLOW_CUSTOM_MODEL_PATH = os.getenv("ALLOW_CUSTOM_MODEL_PATH", "true").lower() in ["1", "true"]
+
+# Global cache: path -> (model, class_names)
+_model_cache = {}
+logger = logging.getLogger(__name__)
+
+
+def load_class_names(model_path: str) -> List[str]:
+    """Load class names from a companion .txt file alongside the model.
+
+    For a model at /app/models/myModel.pth, looks for /app/models/myModel.txt
+    with one class name per line.
+    """
+    txt_path = os.path.splitext(model_path)[0] + ".txt"
+    if os.path.exists(txt_path):
+        with open(txt_path) as f:
+            names = [line.strip() for line in f if line.strip()]
+        logger.info(f"Loaded {len(names)} class names from {txt_path}")
+        return names
+    logger.warning(
+        f"No class names file found at {txt_path}. "
+        f"Create a .txt file with one class name per line alongside your model."
+    )
+    return []
+
+
+def build_taxonomy_path_map(label_config: str) -> Dict[str, List[str]]:
+    """Parse label config XML and return a flat map of leaf choice value -> full path.
+
+    For a 2-level taxonomy like:
+        <Choice value="Beverage"><Choice value="Juice"/></Choice>
+    Returns: {"Juice": ["Beverage", "Juice"], ...}
+    """
+    path_map = {}
+    try:
+        root = ET.fromstring(label_config)
+    except ET.ParseError as e:
+        logger.warning(f"Failed to parse label config for taxonomy map: {e}")
+        return path_map
+
+    for taxonomy in root.iter("Taxonomy"):
+        for top_choice in taxonomy.findall("Choice"):
+            top_val = top_choice.get("value", "")
+            children = top_choice.findall("Choice")
+            if children:
+                for child in children:
+                    leaf_val = child.get("value", "")
+                    path_map[leaf_val] = [top_val, leaf_val]
+            else:
+                path_map[top_val] = [top_val]
+
+    logger.debug(f"Built taxonomy path map with {len(path_map)} entries")
+    return path_map
+
+
+def find_per_region_taxonomy(label_interface) -> tuple[Optional[str], Optional[str]]:
+    """Find the first perRegion Taxonomy control and return (from_name, to_name)."""
+    for control in label_interface.controls:
+        if control.tag == "Taxonomy" and control.attr.get("perRegion", "").lower() in ("true", "1", "yes"):
+            to_name = control.to_name[0] if control.to_name else None
+            return control.name, to_name
+    return None, None
+
+
+class ControlModel(BaseModel):
+    """Base class for RF-DETR control tag models."""
+
+    type: ClassVar[str]
+    control: ControlTag
+    from_name: str
+    to_name: str
+    value: str
+    model: object
+    model_path: ClassVar[str]
+    model_score_threshold: float = MODEL_SCORE_THRESHOLD
+    label_map: Optional[Dict[str, str]] = {}
+    label_studio_ml_backend: LabelStudioMLBase
+    project_id: Optional[str] = None
+    class_names: List[str] = []
+    # Taxonomy auto-labeling
+    taxonomy_from_name: Optional[str] = None
+    taxonomy_to_name: Optional[str] = None
+    taxonomy_path_map: Dict[str, List[str]] = {}
+
+    @classmethod
+    def is_control_matched(cls, control) -> bool:
+        raise NotImplementedError("This method should be overridden in derived classes")
+
+    @classmethod
+    def create(cls, mlbackend: LabelStudioMLBase, control: ControlTag):
+        from_name = control.name
+        to_name = control.to_name[0]
+        value = control.objects[0].value_name
+
+        model_score_threshold = float(
+            control.attr.get("model_score_threshold") or MODEL_SCORE_THRESHOLD
+        )
+        model_path = (ALLOW_CUSTOM_MODEL_PATH and control.attr.get("model_path")) or cls.model_path
+
+        model, class_names = cls.get_cached_model(model_path)
+        label_map = mlbackend.build_label_map(from_name, class_names)
+
+        # Detect a perRegion Taxonomy to auto-populate SKU predictions
+        taxonomy_from_name, taxonomy_to_name = find_per_region_taxonomy(mlbackend.label_interface)
+        taxonomy_path_map = {}
+        if taxonomy_from_name:
+            taxonomy_path_map = build_taxonomy_path_map(mlbackend.label_config)
+            logger.info(
+                f"Taxonomy auto-labeling enabled: '{taxonomy_from_name}' "
+                f"({len(taxonomy_path_map)} SKUs mapped)"
+            )
+
+        return cls(
+            control=control,
+            from_name=from_name,
+            to_name=to_name,
+            value=value,
+            model=model,
+            model_score_threshold=model_score_threshold,
+            label_map=label_map,
+            label_studio_ml_backend=mlbackend,
+            project_id=mlbackend.project_id,
+            class_names=class_names,
+            taxonomy_from_name=taxonomy_from_name,
+            taxonomy_to_name=taxonomy_to_name,
+            taxonomy_path_map=taxonomy_path_map,
+        )
+
+    @classmethod
+    def load_rfdetr_model(cls, filename: str):
+        from rfdetr import RFDETRBase
+
+        path = os.path.join(MODEL_ROOT, filename)
+        class_names = load_class_names(path)
+        num_classes = len(class_names) if class_names else 91  # fallback to COCO default
+
+        logger.info(f"Loading RF-DETR model from: {path}")
+        model = RFDETRBase(
+            pretrain_weights=path,
+            num_classes=180,  # must match checkpoint (trained with 180)
+            resolution=384,
+            patch_size=16,
+            positional_encoding_size=24,
+            num_windows=2,
+            dec_layers=2,
+            out_feature_indexes=[3, 6, 9, 12],
+        )
+        logger.info(f"[MODEL LOADED] {path} | classes={num_classes}")
+        logger.debug(f"[MODEL CLASSES] {path}: {class_names}")
+        return model, class_names
+
+    @classmethod
+    def get_cached_model(cls, path: str):
+        if path not in _model_cache:
+            _model_cache[path] = cls.load_rfdetr_model(path)
+        return _model_cache[path]
+
+    def get_path(self, task) -> str:
+        task_path = task["data"].get(self.value) or task["data"].get(DATA_UNDEFINED_NAME)
+        if task_path is None:
+            raise ValueError(f"Can't load path using key '{self.value}' from task {task}")
+        path = (
+            task_path
+            if os.path.exists(task_path)
+            else self.label_studio_ml_backend.get_local_path(task_path, task_id=task.get("id"))
+        )
+        logger.debug(f"load_image: {task_path} => {path}")
+        return path
+
+    def make_region_id(self) -> str:
+        return uuid.uuid4().hex[:8]
+
+    def predict_regions(self, path) -> List[Dict]:
+        raise NotImplementedError("This method should be overridden in derived classes")
+
+    class Config:
+        arbitrary_types_allowed = True
+        protected_namespaces = ("__.*__", "_.*")

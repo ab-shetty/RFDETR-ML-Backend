@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  rfdetr:
+    container_name: rfdetr
+    image: humansignal/rfdetr:v0
+    build:
+      context: .
+    environment:
+      - LOG_LEVEL=INFO
+      - WORKERS=1
+      - THREADS=4
+      # Label Studio connection — must match your YOLO backend .env
+      - LABEL_STUDIO_HOST=${LABEL_STUDIO_HOST:-http://host.docker.internal:8080}
+      - LABEL_STUDIO_API_KEY=${LABEL_STUDIO_API_KEY}
+      # RF-DETR parameters
+      - ALLOW_CUSTOM_MODEL_PATH=true
+      - MODEL_SCORE_THRESHOLD=0.5
+      - MODEL_ROOT=/app/models
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "9091:9091"
+    shm_size: "2gb"
+    volumes:
+      - "./models:/app/models"

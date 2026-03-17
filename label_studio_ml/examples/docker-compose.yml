@@ -10,9 +10,10 @@ services:
       - LOG_LEVEL=INFO
       - WORKERS=1
       - THREADS=4
-      # Label Studio connection — must match your YOLO backend .env
-      - LABEL_STUDIO_HOST=${LABEL_STUDIO_HOST:-http://host.docker.internal:8080}
-      - LABEL_STUDIO_URL=${LABEL_STUDIO_HOST:-http://host.docker.internal:8080}
+      # Label Studio connection — uses LABEL_STUDIO_DOCKER_HOST for internal Docker networking.
+      # Set LABEL_STUDIO_DOCKER_HOST in .env only if host.docker.internal is not available.
+      - LABEL_STUDIO_HOST=${LABEL_STUDIO_DOCKER_HOST:-http://host.docker.internal:8080}
+      - LABEL_STUDIO_URL=${LABEL_STUDIO_DOCKER_HOST:-http://host.docker.internal:8080}
       - LABEL_STUDIO_API_KEY=${LABEL_STUDIO_API_KEY}
       # RF-DETR parameters
       - ALLOW_CUSTOM_MODEL_PATH=true

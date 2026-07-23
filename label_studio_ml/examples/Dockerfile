@@ -22,6 +22,14 @@ COPY requirements-base.txt .
 RUN --mount=type=cache,target=${PIP_CACHE_DIR},sharing=locked \
     pip install -r requirements-base.txt
 
+# install CPU-only torch FIRST, from PyTorch's CPU wheel index, so that
+# rfdetr's torch dependency (below) is already satisfied by the CPU build.
+# The default PyPI torch wheel is the CUDA build (~2GB of unused GPU libs on
+# this CPU-only deployment).
+COPY requirements-torch-cpu.txt .
+RUN --mount=type=cache,target=${PIP_CACHE_DIR},sharing=locked \
+    pip install -r requirements-torch-cpu.txt --index-url https://download.pytorch.org/whl/cpu
+
 # install model requirements
 COPY requirements.txt .
 RUN --mount=type=cache,target=${PIP_CACHE_DIR},sharing=locked \

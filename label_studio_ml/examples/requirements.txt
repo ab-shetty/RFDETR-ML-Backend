@@ -1,5 +1,7 @@
-torch
-torchvision
+# torch and torchvision are installed separately from the CPU wheel index —
+# see requirements-torch-cpu.txt and the Dockerfile. Do NOT add them here, or
+# pip will pull the default CUDA build. For a local (non-Docker) install, run
+# that CPU install first, then this file.
 opencv-python-headless
 rfdetr
 supervision

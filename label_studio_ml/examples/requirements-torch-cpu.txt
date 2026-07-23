@@ -1,0 +1,11 @@
+# CPU-only torch/torchvision, installed from PyTorch's CPU wheel index.
+# This backend runs inference on CPU (see README) — the default PyPI torch
+# wheel on Linux is the CUDA build, which drags in ~2GB of unused GPU
+# libraries (nvidia-cudnn, nccl, cusparselt, cuda-toolkit, ...). Installing
+# these first, from the CPU index, means rfdetr's torch dependency is already
+# satisfied by the CPU build and pip never fetches the CUDA wheels.
+#
+# Install with:
+#   pip install -r requirements-torch-cpu.txt --index-url https://download.pytorch.org/whl/cpu
+torch
+torchvision

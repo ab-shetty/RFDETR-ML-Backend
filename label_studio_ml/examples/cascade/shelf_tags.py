@@ -36,12 +36,14 @@ logger = logging.getLogger(__name__)
 MODEL = "gpt-5-mini"
 _client = None
 
-# Product slot sits above its tag. These are the vertical extent (as a
-# fraction of image height) and half-width used to propose a box from a tag
-# position — deliberately generous; a pre-annotation box the human nudges is
-# far cheaper than finding the right SKU from scratch, which the tag provides.
-SLOT_TOP_OFFSET = 0.16     # how far above the tag the slot reaches
-SLOT_BOTTOM_OFFSET = 0.02  # small gap above the tag itself
+# Product slot sits directly above its tag. Measured on labeled frames, the
+# product's center is ~0.045 of image height above its tag center, so a slot
+# spanning [tag_y - 0.09, tag_y] centers on the product (center ≈ tag_y-0.045)
+# and is tall enough to cover height variation. A pre-annotation box the human
+# nudges is far cheaper than finding the right SKU from scratch (the tag gives
+# that for free).
+SLOT_TOP_OFFSET = 0.09     # how far above the tag the slot reaches
+SLOT_BOTTOM_OFFSET = 0.0   # slot bottom sits at the tag line
 SLOT_HALF_WIDTH = 0.06
 FUZZY_MIN_SCORE = 82       # min rapidfuzz score to accept a tag->map match
 

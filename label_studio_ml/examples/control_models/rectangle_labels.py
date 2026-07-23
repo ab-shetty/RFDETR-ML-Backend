@@ -1,7 +1,7 @@
 import logging
 
 from PIL import Image
-from control_models.base import CASCADE_ENABLED, CASCADE_FLOOR, ControlModel
+from control_models.base import CASCADE_ENABLED, CASCADE_FLOOR, SHELF_TAGS_ENABLED, ControlModel
 from typing import List, Dict, Optional
 
 
@@ -99,44 +99,63 @@ class RFDETRRectangleLabelsModel(ControlModel):
                 logger.debug(f"Dropping '{class_name}' score={score:.3f} < threshold={effective_threshold:.3f}")
                 continue
 
-            region_id = self.make_region_id()
+            regions.extend(self._emit_regions(class_id, box_label, x1, y1, x2, y2, width, height, score))
 
-            # Bounding box region
-            rect_region = {
-                "id": region_id,
-                "from_name": self.from_name,
-                "to_name": self.to_name,
-                "type": "rectanglelabels",
-                "value": {
-                    "rectanglelabels": [box_label],
-                    "x": (x1 / width) * 100,
-                    "y": (y1 / height) * 100,
-                    "width": ((x2 - x1) / width) * 100,
-                    "height": ((y2 - y1) / height) * 100,
-                },
-                "score": score,
-            }
-            regions.append(rect_region)
-
-            # Taxonomy region linked to the bounding box
-            tax_path = self._get_taxonomy_path(class_id)
-            if tax_path and self.taxonomy_from_name:
-                class_name = self.class_names[class_id]
-                logger.debug(
-                    f"Detection: class='{class_name}' -> taxonomy={tax_path}, "
-                    f"score={score:.3f}, bbox=[{x1:.1f},{y1:.1f},{x2:.1f},{y2:.1f}]"
-                )
-                tax_region = {
-                    "id": self.make_region_id(),
-                    "from_name": self.taxonomy_from_name,
-                    "to_name": self.taxonomy_to_name or self.to_name,
-                    "type": "taxonomy",
-                    "parentID": region_id,
-                    "value": {
-                        "taxonomy": [tax_path],
-                    },
-                    "score": score,
-                }
-                regions.append(tax_region)
+        if SHELF_TAGS_ENABLED and self.tag_class_map:
+            regions.extend(self._shelf_tag_regions(image, regions, width, height))
 
         return regions
+
+    def _emit_regions(self, class_id, box_label, x1, y1, x2, y2, width, height, score) -> List[Dict]:
+        """Build the rectangle region (+ linked taxonomy region) for one detection."""
+        region_id = self.make_region_id()
+        out = [{
+            "id": region_id,
+            "from_name": self.from_name,
+            "to_name": self.to_name,
+            "type": "rectanglelabels",
+            "value": {
+                "rectanglelabels": [box_label],
+                "x": (x1 / width) * 100,
+                "y": (y1 / height) * 100,
+                "width": ((x2 - x1) / width) * 100,
+                "height": ((y2 - y1) / height) * 100,
+            },
+            "score": score,
+        }]
+        tax_path = self._get_taxonomy_path(class_id)
+        if tax_path and self.taxonomy_from_name:
+            out.append({
+                "id": self.make_region_id(),
+                "from_name": self.taxonomy_from_name,
+                "to_name": self.taxonomy_to_name or self.to_name,
+                "type": "taxonomy",
+                "parentID": region_id,
+                "value": {"taxonomy": [tax_path]},
+                "score": score,
+            })
+        return out
+
+    def _shelf_tag_regions(self, image, existing_regions, width, height) -> List[Dict]:
+        """Propose boxes for products RF-DETR/the cascade missed, using shelf tags."""
+        from cascade.shelf_tags import propose_from_tags
+
+        # normalized centers of boxes already kept, so we don't double-propose
+        covered = []
+        for r in existing_regions:
+            if r["type"] == "rectanglelabels":
+                v = r["value"]
+                covered.append(((v["x"] + v["width"] / 2) / 100.0, (v["y"] + v["height"] / 2) / 100.0))
+
+        name_to_id = {n: i for i, n in enumerate(self.class_names)}
+        out = []
+        for prop in propose_from_tags(image, self.tag_class_map, covered):
+            class_id = name_to_id.get(prop["class_name"])
+            box_label = self._get_box_label(class_id) if class_id is not None else None
+            if box_label is None:
+                continue
+            x1, y1, x2, y2 = prop["box"]
+            logger.debug(f"Shelf-tag proposal: '{prop['class_name']}' from tag '{prop['tag']}'")
+            # lower nominal score — these are approximate boxes the human refines
+            out.extend(self._emit_regions(class_id, box_label, x1, y1, x2, y2, width, height, score=0.30))
+        return out

@@ -61,16 +61,25 @@ def main():
                 dec=verify_detection(crop=img.crop((x1,y1,x2,y2)),class_name=nm,detector_confidence=sc,
                     effective_threshold=eff,expected_text=et,reference_gallery=gal,nn_model=nn,cascade_floor=CASCADE_FLOOR)
                 if dec!=Decision.AUTO_REJECT: casc.append((nm,c))
-            # full = cascade + shelf-tag proposals for uncovered
-            props=[(pr["class_name"],((pr["box"][0]+pr["box"][2])/2/W,(pr["box"][1]+pr["box"][3])/2/H))
-                   for pr in propose_from_tags(img, tagm, [c for _,c in casc])]
-            full=casc+props
+            # full = cascade boxes with class CORRECTED by the shelf tag in
+            # their column (localization from RF-DETR, SKU from the tag).
+            from cascade.shelf_tags import detect_tags, lookup_class
+            tags=detect_tags(img)
+            full=[]
+            for nm,c in casc:
+                # a tag sits ~0.045 below the box center, same column
+                near=[t for t in tags if abs(t["x"]-c[0])<0.09 and 0 < (t["y"]-c[1]) < 0.13]
+                corrected=nm
+                if near:
+                    tcls=lookup_class(min(near,key=lambda t:t["y"]-c[1])["name"], tagm)
+                    if tcls: corrected=tcls
+                full.append((corrected,c))
             for key,kept in (("rf",rf),("casc",casc),("full",full)):
                 r,pp,hg=recall_prec(kept,gtn); agg[key]["r"]+=hg
                 agg[key]["tpb"]+=sum(1 for n,c in kept if any(gn==n and abs(gc[0]-c[0])<CT and abs(gc[1]-c[1])<CT for gn,gc in gtn))
                 agg[key]["kept"]+=len(kept)
         print(f"=== {split.upper()} ({ngt} GT) — loose center match ===")
-        for key,label in (("rf","RF-DETR + thresholds "),("casc","+ cascade           "),("full","+ cascade + shelf-tags")):
+        for key,label in (("rf","RF-DETR + thresholds "),("casc","+ cascade           "),("full","+ cascade + tag-correct ")):
             a=agg[key]; print(f"  {label} recall={a['r']/ngt:.2f}  precision={a['tpb']/max(a['kept'],1):.2f}  (kept {a['kept']})")
         print()
 

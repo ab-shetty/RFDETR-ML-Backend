@@ -102,7 +102,7 @@ class RFDETRRectangleLabelsModel(ControlModel):
             regions.extend(self._emit_regions(class_id, box_label, x1, y1, x2, y2, width, height, score))
 
         if SHELF_TAGS_ENABLED and self.tag_class_map:
-            regions.extend(self._shelf_tag_regions(image, regions, width, height))
+            self._apply_tag_corrections(image, regions)
 
         return regions
 
@@ -136,26 +136,56 @@ class RFDETRRectangleLabelsModel(ControlModel):
             })
         return out
 
-    def _shelf_tag_regions(self, image, existing_regions, width, height) -> List[Dict]:
-        """Propose boxes for products RF-DETR/the cascade missed, using shelf tags."""
-        from cascade.shelf_tags import propose_from_tags
+    def _apply_tag_corrections(self, image, regions) -> None:
+        """Correct the SKU (taxonomy) on each box using the shelf tag in its
+        column. RF-DETR/the cascade localize the box; the shelf tag — the
+        store's own label — names the product, which is the harder part and
+        where the detector is weakest.
 
-        # normalized centers of boxes already kept, so we don't double-propose
-        covered = []
-        for r in existing_regions:
-            if r["type"] == "rectanglelabels":
-                v = r["value"]
-                covered.append(((v["x"] + v["width"] / 2) / 100.0, (v["y"] + v["height"] / 2) / 100.0))
+        Measured on held-out frames this raised class-aware precision (and
+        recall on test) with no extra boxes, unlike proposing new boxes on top
+        of the cascade, which mostly added false positives (see the PR history).
+        Proposing new boxes from tags (propose_from_tags in cascade/shelf_tags)
+        is kept as a utility for the low-recall regime where the cascade is off.
+        """
+        from cascade.shelf_tags import detect_tags, lookup_class
 
+        tags = detect_tags(image)
+        if not tags:
+            return
         name_to_id = {n: i for i, n in enumerate(self.class_names)}
-        out = []
-        for prop in propose_from_tags(image, self.tag_class_map, covered):
-            class_id = name_to_id.get(prop["class_name"])
-            box_label = self._get_box_label(class_id) if class_id is not None else None
-            if box_label is None:
+        tax_by_parent = {r["parentID"]: r for r in regions
+                         if r.get("type") == "taxonomy" and "parentID" in r}
+
+        for r in regions:
+            if r.get("type") != "rectanglelabels":
                 continue
-            x1, y1, x2, y2 = prop["box"]
-            logger.debug(f"Shelf-tag proposal: '{prop['class_name']}' from tag '{prop['tag']}'")
-            # lower nominal score — these are approximate boxes the human refines
-            out.extend(self._emit_regions(class_id, box_label, x1, y1, x2, y2, width, height, score=0.30))
-        return out
+            v = r["value"]
+            cx = (v["x"] + v["width"] / 2) / 100.0
+            cy = (v["y"] + v["height"] / 2) / 100.0
+            # tag sits just below the box center, same column
+            near = [t for t in tags if abs(t["x"] - cx) < 0.09 and 0 < (t["y"] - cy) < 0.13]
+            if not near:
+                continue
+            tag = min(near, key=lambda t: t["y"] - cy)
+            cls = lookup_class(tag["name"], self.tag_class_map)
+            if not cls or cls not in name_to_id:
+                continue
+            tax_path = self._get_taxonomy_path(name_to_id[cls])
+            if not tax_path:
+                continue
+            existing = tax_by_parent.get(r["id"])
+            if existing:
+                if existing["value"].get("taxonomy") != [tax_path]:
+                    logger.debug(f"Shelf-tag corrected SKU to '{cls}' (tag '{tag['name']}')")
+                    existing["value"]["taxonomy"] = [tax_path]
+            elif self.taxonomy_from_name:
+                regions.append({
+                    "id": self.make_region_id(),
+                    "from_name": self.taxonomy_from_name,
+                    "to_name": self.taxonomy_to_name or self.to_name,
+                    "type": "taxonomy",
+                    "parentID": r["id"],
+                    "value": {"taxonomy": [tax_path]},
+                    "score": r.get("score", 0.5),
+                })

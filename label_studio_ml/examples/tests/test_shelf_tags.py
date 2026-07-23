@@ -68,3 +68,38 @@ def test_propose_from_tags_skips_unmapped_tag():
     img = Image.new("RGB", (100, 200))
     with patch("cascade.shelf_tags.detect_tags", return_value=[{"name": "MYSTERY ITEM", "x": 0.5, "y": 0.5}]):
         assert shelf_tags.propose_from_tags(img, m, covered_centers=[]) == []
+
+
+def _corrector_model(tag_class_map):
+    from control_models.rectangle_labels import RFDETRRectangleLabelsModel
+    return RFDETRRectangleLabelsModel.model_construct(
+        class_names=["Apple", "Very Green Juice"],
+        tag_class_map=tag_class_map,
+        taxonomy_path_map={"Very Green Juice": ["Beverage", "Very Green Juice"], "Apple": ["Produce", "Apple"]},
+        taxonomy_from_name="sku", taxonomy_to_name="image", to_name="image",
+    )
+
+
+def test_apply_tag_corrections_fixes_taxonomy_from_tag():
+    from unittest.mock import patch
+    m = _corrector_model({"VERY GREEN JUICE": "Very Green Juice"})
+    # a box mis-classed as Apple, with a Very Green Juice tag in its column
+    regions = [
+        {"id": "r1", "type": "rectanglelabels", "value": {"x": 75, "y": 30, "width": 10, "height": 10}},
+        {"id": "t1", "type": "taxonomy", "parentID": "r1", "value": {"taxonomy": [["Produce", "Apple"]]}},
+    ]
+    with patch("cascade.shelf_tags.detect_tags", return_value=[{"name": "VERY GREEN JUICE $2.99", "x": 0.8, "y": 0.42}]):
+        m._apply_tag_corrections(Image.new("RGB", (100, 100)), regions)
+    assert regions[1]["value"]["taxonomy"] == [["Beverage", "Very Green Juice"]]
+
+
+def test_apply_tag_corrections_noop_without_matching_tag():
+    from unittest.mock import patch
+    m = _corrector_model({"VERY GREEN JUICE": "Very Green Juice"})
+    regions = [
+        {"id": "r1", "type": "rectanglelabels", "value": {"x": 5, "y": 5, "width": 10, "height": 10}},
+        {"id": "t1", "type": "taxonomy", "parentID": "r1", "value": {"taxonomy": [["Produce", "Apple"]]}},
+    ]
+    with patch("cascade.shelf_tags.detect_tags", return_value=[{"name": "VERY GREEN JUICE", "x": 0.8, "y": 0.42}]):
+        m._apply_tag_corrections(Image.new("RGB", (100, 100)), regions)
+    assert regions[1]["value"]["taxonomy"] == [["Produce", "Apple"]]  # far-away tag: unchanged

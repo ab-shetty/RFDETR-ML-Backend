@@ -5,3 +5,6 @@ rfdetr
 supervision
 Pillow
 numpy<3
+pytesseract
+rapidfuzz
+openai

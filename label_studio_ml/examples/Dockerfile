@@ -7,7 +7,8 @@ RUN --mount=type=cache,target="/var/cache/apt",sharing=locked \
     --mount=type=cache,target="/var/lib/apt/lists",sharing=locked \
     apt-get -y update \
     && apt-get install -y git wget curl gcc \
-    && apt-get install -y libsm6 libxext6 libffi-dev python3-dev libgl1 libglib2.0-0
+    && apt-get install -y libsm6 libxext6 libffi-dev python3-dev libgl1 libglib2.0-0 \
+    && apt-get install -y tesseract-ocr
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \

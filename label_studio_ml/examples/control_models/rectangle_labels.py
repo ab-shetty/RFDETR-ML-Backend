@@ -1,7 +1,7 @@
 import logging
 
 from PIL import Image
-from control_models.base import ControlModel
+from control_models.base import CASCADE_ENABLED, ControlModel
 from typing import List, Dict, Optional
 
 
@@ -71,6 +71,24 @@ class RFDETRRectangleLabelsModel(ControlModel):
             if score < effective_threshold:
                 logger.debug(f"Dropping '{class_name}' score={score:.3f} < threshold={effective_threshold:.3f}")
                 continue
+
+            if CASCADE_ENABLED and class_name:
+                from cascade.embedding_match import get_backbone_nn_module
+                from cascade.pipeline import Decision, verify_detection
+
+                crop = image.crop((x1, y1, x2, y2))
+                decision = verify_detection(
+                    crop=crop,
+                    class_name=class_name,
+                    detector_confidence=score,
+                    effective_threshold=effective_threshold,
+                    expected_text=self.expected_text,
+                    reference_gallery=self.reference_gallery,
+                    nn_model=get_backbone_nn_module(self.model),
+                )
+                if decision == Decision.AUTO_REJECT:
+                    logger.debug(f"Cascade rejected '{class_name}' score={score:.3f}")
+                    continue
 
             region_id = self.make_region_id()
 

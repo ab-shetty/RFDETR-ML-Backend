@@ -16,6 +16,13 @@ DEFAULT_MODEL_ROOT = os.path.join(os.path.dirname(os.path.dirname(__file__)), "m
 MODEL_ROOT = os.getenv("MODEL_ROOT", DEFAULT_MODEL_ROOT)
 os.makedirs(MODEL_ROOT, exist_ok=True)
 ALLOW_CUSTOM_MODEL_PATH = os.getenv("ALLOW_CUSTOM_MODEL_PATH", "true").lower() in ["1", "true"]
+# OCR + embedding + GPT-5-mini verification cascade (see cascade/pipeline.py).
+# Off by default -- it adds real per-detection latency (OCR + a backbone
+# forward pass, occasionally a GPT-5-mini call) and depends on resource
+# files (ocr_expected_text.json, reference_gallery.npz) that only exist once
+# the corresponding build_*.py scripts have been run. Per-class thresholds
+# (MODEL_SCORE_THRESHOLD / class_thresholds.json) work independently of this.
+CASCADE_ENABLED = os.getenv("CASCADE_ENABLED", "false").lower() in ["1", "true"]
 
 # Global cache: path -> (model, class_names)
 _model_cache = {}
@@ -119,6 +126,10 @@ class ControlModel(BaseModel):
     # None means "not set" — distinct from a value that happens to equal the default.
     xml_threshold_override: Optional[float] = None
     class_thresholds: Dict[str, float] = {}
+    # Cascade verification resources (empty unless CASCADE_ENABLED and the
+    # corresponding build_*.py script has been run for this model).
+    expected_text: Dict[str, Optional[str]] = {}
+    reference_gallery: Dict[str, object] = {}
     label_map: Optional[Dict[str, str]] = {}
     label_studio_ml_backend: LabelStudioMLBase
     project_id: Optional[str] = None
@@ -145,6 +156,13 @@ class ControlModel(BaseModel):
 
         model, class_names = cls.get_cached_model(model_path)
         class_thresholds = load_class_thresholds(os.path.join(MODEL_ROOT, model_path))
+        expected_text, reference_gallery = {}, {}
+        if CASCADE_ENABLED:
+            from cascade.ocr import load_expected_text
+            from cascade.embedding_match import load_reference_gallery
+            model_dir = os.path.dirname(os.path.join(MODEL_ROOT, model_path))
+            expected_text = load_expected_text(os.path.join(model_dir, "ocr_expected_text.json"))
+            reference_gallery = load_reference_gallery(os.path.join(model_dir, "reference_gallery.npz"))
         label_map = mlbackend.build_label_map(from_name, class_names)
 
         # Detect a perRegion Taxonomy to auto-populate SKU predictions
@@ -166,6 +184,8 @@ class ControlModel(BaseModel):
             model_score_threshold=model_score_threshold,
             xml_threshold_override=xml_threshold_override,
             class_thresholds=class_thresholds,
+            expected_text=expected_text,
+            reference_gallery=reference_gallery,
             label_map=label_map,
             label_studio_ml_backend=mlbackend,
             project_id=mlbackend.project_id,

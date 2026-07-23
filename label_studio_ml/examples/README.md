@@ -85,6 +85,28 @@ An explicit `model_score_threshold` set on the `<RectangleLabels>` labeling-conf
 
 ---
 
+## Verification cascade (OCR + embedding match + GPT-5-mini)
+
+Per-class thresholds alone can't fix a class the model barely has data for — no threshold rescues a detector that's never learned to recognize something reliably. The cascade adds two cheap, fast signals plus a GPT-5-mini tiebreaker used only when they disagree, filtering junk detections *before* they become Label Studio pre-annotations rather than after a human deletes them:
+
+1. **OCR** (`cascade/ocr.py`) — reads text off the crop, fuzzy-matches against the class's expected label text. Only meaningful for branded/text-bearing products; produce and generic dairy classes have no expected text, so OCR contributes no signal there by design.
+2. **Embedding match** (`cascade/embedding_match.py`) — embeds the crop with the RF-DETR backbone and compares against a per-class reference gallery built from already-labeled crops.
+3. **GPT-5-mini** (`cascade/gpt_tiebreaker.py`) — called *only* when OCR and embedding-match disagree with each other. Not run on every detection — that would be slow and expensive at real label-batch volume.
+
+Decision policy (`cascade/pipeline.py`): below the per-class threshold → reject outright; no signal available for this class at all → trust the threshold; every available signal agrees → accept; every signal disagrees → reject; signals disagree with *each other* → ask GPT-5-mini.
+
+**Setup:**
+
+```bash
+python scripts/build_ocr_expected_text.py --master-list /path/to/master_list.csv
+python scripts/build_reference_gallery.py --checkpoint models/checkpoint_best_total.pth \
+    --labeling-dir /path/to/labeling/completed
+```
+
+Then set `CASCADE_ENABLED=true` and `OPENAI_API_KEY=<key>` in `.env`. Off by default — it adds real per-detection latency (OCR + a backbone forward pass, occasionally a GPT-5-mini call), so turn it on once the resource files above actually exist; before that it's a silent no-op.
+
+---
+
 ## 4. Fine-tune the model (Apple Silicon only)
 
 ### Setup (one-time)

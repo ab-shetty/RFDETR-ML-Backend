@@ -1,7 +1,7 @@
 import logging
 
 from PIL import Image
-from control_models.base import CASCADE_ENABLED, ControlModel
+from control_models.base import CASCADE_ENABLED, CASCADE_FLOOR, ControlModel
 from typing import List, Dict, Optional
 
 
@@ -50,10 +50,13 @@ class RFDETRRectangleLabelsModel(ControlModel):
         image = Image.open(path).convert("RGB")
         width, height = image.size
 
-        # Call the model with the lowest threshold any class might need, then apply
-        # the real per-class cutoff below — filtering at the model call would throw
-        # away class-specific detail before we can use it.
-        detections = self.model.predict(image, threshold=self.min_prediction_threshold())
+        # Call the model with a low floor, then apply the real per-class cutoff
+        # below — filtering at the model call would throw away class-specific
+        # detail before we can use it. With the cascade on, drop the floor to
+        # CASCADE_FLOOR so sub-threshold detections reach the cascade, which can
+        # promote the real ones (recall recovery).
+        predict_floor = min(self.min_prediction_threshold(), CASCADE_FLOOR) if CASCADE_ENABLED else self.min_prediction_threshold()
+        detections = self.model.predict(image, threshold=predict_floor)
 
         regions = []
         for i in range(len(detections.xyxy)):
@@ -68,11 +71,12 @@ class RFDETRRectangleLabelsModel(ControlModel):
 
             class_name = self.class_names[class_id] if class_id < len(self.class_names) else None
             effective_threshold = self.get_effective_threshold(class_name) if class_name else self.model_score_threshold
-            if score < effective_threshold:
-                logger.debug(f"Dropping '{class_name}' score={score:.3f} < threshold={effective_threshold:.3f}")
-                continue
 
             if CASCADE_ENABLED and class_name:
+                # The cascade governs the whole [CASCADE_FLOOR, inf) range: it can
+                # reject above-threshold false positives AND promote below-threshold
+                # real detections. So don't pre-drop on the per-class threshold here —
+                # pass the threshold in and let the cascade tier the decision.
                 from cascade.embedding_match import get_backbone_nn_module
                 from cascade.pipeline import Decision, verify_detection
 
@@ -85,10 +89,15 @@ class RFDETRRectangleLabelsModel(ControlModel):
                     expected_text=self.expected_text,
                     reference_gallery=self.reference_gallery,
                     nn_model=get_backbone_nn_module(self.model),
+                    cascade_floor=CASCADE_FLOOR,
                 )
                 if decision == Decision.AUTO_REJECT:
                     logger.debug(f"Cascade rejected '{class_name}' score={score:.3f}")
                     continue
+            elif score < effective_threshold:
+                # No cascade: plain per-class threshold filter.
+                logger.debug(f"Dropping '{class_name}' score={score:.3f} < threshold={effective_threshold:.3f}")
+                continue
 
             region_id = self.make_region_id()
 

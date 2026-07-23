@@ -23,6 +23,10 @@ ALLOW_CUSTOM_MODEL_PATH = os.getenv("ALLOW_CUSTOM_MODEL_PATH", "true").lower() i
 # the corresponding build_*.py scripts have been run. Per-class thresholds
 # (MODEL_SCORE_THRESHOLD / class_thresholds.json) work independently of this.
 CASCADE_ENABLED = os.getenv("CASCADE_ENABLED", "false").lower() in ["1", "true"]
+# When the cascade is on, RF-DETR is run down to this floor so the cascade can
+# see (and potentially promote) detections BELOW the per-class threshold — the
+# "uncertain tier" that recovers recall. Boxes below the floor are ignored.
+CASCADE_FLOOR = float(os.getenv("CASCADE_FLOOR", 0.15))
 
 # Global cache: path -> (model, class_names)
 _model_cache = {}

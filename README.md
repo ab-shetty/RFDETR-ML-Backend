@@ -1,3 +1,17 @@
+> **Perceive / Trader Joe's project note:** this fork was trimmed down to just the one model in use —
+> `label_studio_ml/examples/` *is* the RF-DETR backend (`control_models/` — no subdirectory per model,
+> unlike the full upstream monorepo the table below still describes). It's extended with per-class
+> confidence thresholds (`scripts/compute_class_thresholds.py`), an OCR + embedding + GPT-5-mini
+> verification cascade, and shelf-tag SKU correction (see `cascade/` and the other `scripts/*.py`).
+> **Don't run this repo standalone** — bring it up together with the Label Studio fork and Google Drive
+> sync via [`tj-labeling-ops`](https://github.com/ab-shetty/tj-labeling-ops), which documents the full
+> setup, including where the trained checkpoint comes from (it's gitignored here — 123MB, too large to
+> commit, pulled from Drive automatically by that repo's `session_start.sh`).
+> The rest of this README is the generic upstream documentation for the whole examples monorepo this
+> was forked from; most of the table below (other models, other directories) no longer applies here.
+>
+> ---
+
 # What is the Label Studio ML backend?
 
 The Label Studio ML backend is an SDK that lets you wrap your machine learning code and turn it into a web server.

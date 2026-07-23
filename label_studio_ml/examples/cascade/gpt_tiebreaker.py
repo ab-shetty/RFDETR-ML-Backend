@@ -19,7 +19,13 @@ from PIL import Image
 logger = logging.getLogger(__name__)
 
 MODEL = "gpt-5-mini"
-MAX_OUTPUT_TOKENS = 50
+# gpt-5-mini is a reasoning model: max_completion_tokens covers reasoning
+# tokens AND the visible answer. A small budget (e.g. 50) gets entirely
+# consumed by reasoning, returning empty content with finish_reason=length.
+# reasoning_effort="minimal" keeps reasoning tokens ~0 for this simple
+# classification, and the budget leaves ample room for the tiny JSON answer.
+MAX_OUTPUT_TOKENS = 2000
+REASONING_EFFORT = "minimal"
 
 _client = None
 
@@ -62,6 +68,7 @@ def ask(crop: Image.Image, candidates: List[str]) -> Optional[str]:
         response = client.chat.completions.create(
             model=MODEL,
             max_completion_tokens=MAX_OUTPUT_TOKENS,
+            reasoning_effort=REASONING_EFFORT,
             messages=[
                 {
                     "role": "user",
@@ -75,7 +82,10 @@ def ask(crop: Image.Image, candidates: List[str]) -> Optional[str]:
                 }
             ],
         )
-        raw = response.choices[0].message.content
+        raw = (response.choices[0].message.content or "").strip()
+        # Defensive: strip a ```json ... ``` fence if the model wraps its answer.
+        if raw.startswith("```"):
+            raw = raw.split("```")[1].removeprefix("json").strip() if "```" in raw[3:] else raw.strip("`")
         parsed = json.loads(raw)
         match = parsed.get("match")
         if match in candidates:

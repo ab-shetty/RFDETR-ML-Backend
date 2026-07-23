@@ -4,4 +4,4 @@ opencv-python-headless
 rfdetr
 supervision
 Pillow
-numpy<2
+numpy<3

@@ -50,7 +50,10 @@ class RFDETRRectangleLabelsModel(ControlModel):
         image = Image.open(path).convert("RGB")
         width, height = image.size
 
-        detections = self.model.predict(image, threshold=self.model_score_threshold)
+        # Call the model with the lowest threshold any class might need, then apply
+        # the real per-class cutoff below — filtering at the model call would throw
+        # away class-specific detail before we can use it.
+        detections = self.model.predict(image, threshold=self.min_prediction_threshold())
 
         regions = []
         for i in range(len(detections.xyxy)):
@@ -61,6 +64,12 @@ class RFDETRRectangleLabelsModel(ControlModel):
             box_label = self._get_box_label(class_id)
             if box_label is None:
                 logger.debug(f"No label for class_id={class_id}, skipping")
+                continue
+
+            class_name = self.class_names[class_id] if class_id < len(self.class_names) else None
+            effective_threshold = self.get_effective_threshold(class_name) if class_name else self.model_score_threshold
+            if score < effective_threshold:
+                logger.debug(f"Dropping '{class_name}' score={score:.3f} < threshold={effective_threshold:.3f}")
                 continue
 
             region_id = self.make_region_id()

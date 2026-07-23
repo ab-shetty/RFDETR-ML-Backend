@@ -1,0 +1,907 @@
+{
+  "100% Colombian Instant Coffee": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "100% Mango Juice from Carabao Mangoes": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "100% Pomegranate Juice": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "100% Red Tart Cherry Juice": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Absolutely Acerola Juice Shot": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Alkaline Water + Electrolytes": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Almond Breeze Unsweetened Original": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Almond Breeze Unsweetened Vanilla": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Apple": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Apple Cranberry": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Aqua Kefir Orange Peach Mango": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Artichoke": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Asparagus": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Aubergine": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Avocado": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Banana": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Banana & Almond Butter Protein Smoothie": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Black Cherry Vanilla Sparkling Water": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Black Tea Unsweetened Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Blueberry Lemonade Sparkling Water": {
+    "insufficient_data": true,
+    "n_gt_instances": 2,
+    "threshold": 0.5
+  },
+  "Brewed Ginger Beer": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Cabbage": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Carrots": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Chai Tea Concentrate": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Cherry Cola Prebiotic Soda": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Chocolate Almond Protein Smoothie Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Chocolate Hazelnut Ground Coffee": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Classic Greek Salad": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Cocoa Berry Black Tea Blend": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Coconut Smoothie": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Coconut Water, 1L": {
+    "insufficient_data": true,
+    "n_gt_instances": 2,
+    "threshold": 0.5
+  },
+  "Cold Brew Coffee": {
+    "insufficient_data": true,
+    "n_gt_instances": 2,
+    "threshold": 0.5
+  },
+  "Cold Brew Coffee Black": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Cold Brew Coffee Concentrate": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Colombia Supremo Coffee": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Cranberry Clementine Sparkling Water": {
+    "insufficient_data": true,
+    "n_gt_instances": 2,
+    "threshold": 0.5
+  },
+  "Cucumber": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Decaffeinated Black Tea": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Fair Trade Organic Bolivian Blend": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Fair Trade Organic Sumatra Coffee": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "French Market Sparkling Lemonade": {
+    "f_beta": 0.909,
+    "insufficient_data": false,
+    "n_gt_instances": 3,
+    "precision": 1.0,
+    "recall": 0.667,
+    "threshold": 0.35
+  },
+  "French Market Sparkling Pink Lemonade": {
+    "f_beta": 0.909,
+    "insufficient_data": false,
+    "n_gt_instances": 3,
+    "precision": 1.0,
+    "recall": 0.667,
+    "threshold": 0.45
+  },
+  "GT's Guava Paloma Agua de Kefir": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Garlic": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Ginger": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Ginger Lemon Probiotic Sparkling Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Golden Oolong Tea": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Grapefruit Sparkling Water": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Green Tea Blueberry & Pomegranate Unsweetened Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Green Tea Unsweetened Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Hot Cocoa Mix": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Italian Sparkling Mineral Water": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Joe Medium Roast Ground Coffee": {
+    "insufficient_data": true,
+    "n_gt_instances": 2,
+    "threshold": 0.5
+  },
+  "Joe Medium Roast Whole Bean Coffee": {
+    "insufficient_data": true,
+    "n_gt_instances": 2,
+    "threshold": 0.5
+  },
+  "Juice": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Kiwi": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "La Colombe Double Cold Brew Latte with Oatmilk": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "La Colombe Triple Coffee": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "La Colombe Triple Cold Brew Latte": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "La Colombe\u00ae Vanilla Cold Brew Draft Latte": {
+    "f_beta": 0.455,
+    "insufficient_data": false,
+    "n_gt_instances": 3,
+    "precision": 0.5,
+    "recall": 0.333,
+    "threshold": 0.1
+  },
+  "Leek": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Lemon": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Lemon Basil Pasta Salad": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Lemon Sparkling Water": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Lime": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Lime Sparkling Water": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Mandarin Orange Sparkling Water": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Mango": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Mango 100% Juice Smoothie": {
+    "f_beta": 1.0,
+    "insufficient_data": false,
+    "n_gt_instances": 3,
+    "precision": 1.0,
+    "recall": 1.0,
+    "threshold": 0.15
+  },
+  "Maple Pecan Cold Brew Coffee Concentrate": {
+    "insufficient_data": true,
+    "n_gt_instances": 2,
+    "threshold": 0.5
+  },
+  "Matcha Green Tea": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Matcha Green Tea Latte Mix": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Matcha Green Tea Powder": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Mediterranean Style Orzo Pasta Salad": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Melon": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Mighty C Acerola Cherry Juice Shot": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Milk": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Mushroom": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Nectarine": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Non-Alcoholic Blanc Sparkling Tea": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Non-Alcoholic Ros\u00e9 Sparkling Tea": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Non-Dairy Oat Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Oat-Milk": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Oatghurt": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Onion": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Orange": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Organic Apple Juice Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Organic Blood Orange Rooibos Herbal Tea Blend": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Organic Carrot Turmeric Juice Blend": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Organic Coconut Smoothie": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Organic Cold Brew Black Tea Concentrate": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Organic Earl Grey Tea": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Organic Elderberry Juice Shot": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Organic Fair Trade Wake Up Blend Coffee": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Organic French Roast Cold Brew Concentrate": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Organic Fruit Punch Juice Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 2,
+    "threshold": 0.5
+  },
+  "Organic Ginger Turmeric Herbal Tea": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Organic Hot Cocoa Mix": {
+    "insufficient_data": true,
+    "n_gt_instances": 2,
+    "threshold": 0.5
+  },
+  "Organic Jalape\u00f1o Limeade": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Organic Lemonade": {
+    "insufficient_data": true,
+    "n_gt_instances": 2,
+    "threshold": 0.5
+  },
+  "Organic Low Calorie Lemonade": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Organic Margarita Mix": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Organic Mighty Turmeric Juice Shot": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Organic Moroccan Mint Green Tea": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Organic Non-Dairy Coconut Beverage Unsweetened": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Organic Non-Dairy Rice Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Organic Roasted Herbal Tea": {
+    "insufficient_data": true,
+    "n_gt_instances": 2,
+    "threshold": 0.5
+  },
+  "Organic Sparkling Ginger + Lemon Apple Cider Vinegar Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Organic Sparkling Lemon + Strawberry Apple Cider Vinegar Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Organic Sparkling Ros\u00e9 Tea Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Organic Unfiltered Apple Juice": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Organic Unsweetened Almond Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Papaya": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Passion-Fruit": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Peach": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Pear": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Pepper": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Peppermint Herbal Tea": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Pineapple": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Plain Sparkling Water": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Plum": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Pomegranate": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Potato": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Pumpkin Spice Flavored Cold Brew Coffee": {
+    "insufficient_data": true,
+    "n_gt_instances": 2,
+    "threshold": 0.5
+  },
+  "Pure New Zealand Artesian Water": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Raspberry Lime Sparkling Water": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Ready To Drink Cold Brew Coffee": {
+    "insufficient_data": true,
+    "n_gt_instances": 2,
+    "threshold": 0.5
+  },
+  "Ready to Use Espresso Coffee": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Red-Beet": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Red-Grapefruit": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "San Pellegrino": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "San Pellegrino 6-pack": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Satsumas": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Seltzer Water flavored with Lemon and Ginger Juice": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Shade Grown Espresso Blend": {
+    "insufficient_data": true,
+    "n_gt_instances": 2,
+    "threshold": 0.5
+  },
+  "Single Origin Organic Coconut Water": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Something Spritzy": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Something Spritzy Pineapple & Orange": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Sour-Cream": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Sour-Milk": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Soy-Milk": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Soyghurt": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Sparkling Apple Cider": {
+    "insufficient_data": true,
+    "n_gt_instances": 2,
+    "threshold": 0.5
+  },
+  "Sparkling Black Tea with Peach Juice Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Sparkling Coconut Water with Yuzu": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Sparkling Green Tea with Pineapple": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Sparkling Pomegrante Punch Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Sparkling Strawberry Juice": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Sparkling Tea & Lemonade": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Sparkling Tea Violette": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Sparkling White Tea with Pomegranate Juice": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Spiced Chai Black Tea Concentrate": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Spiced Cider": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Spindrift Island Punch Sparkling Water": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Spring Water 1.5 liter": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Strawberry Vanilla Prebiotic Soda": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Sweet Tea Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Sweet-Potato": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Tangerine Probiotic Sparkling Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Tejava Original Black Tea": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Tejava Tea": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "To The Power of 7 Green Organic Juice Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "To The Power of 7 Purple Organic Juice Blend": {
+    "insufficient_data": true,
+    "n_gt_instances": 2,
+    "threshold": 0.5
+  },
+  "To The Power of Seven Red Organic Juice Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "To the Power of C Organic Juice Blend": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Tomato": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Triple Ginger Brew Sparkling Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Unsweetened Almond, Cashew & Macadamia Nut Beverage": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Vanilla Almond Spiced Chai Protein Smoothie": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Vanilla Cardamom Cold Brew Coffee": {
+    "insufficient_data": true,
+    "n_gt_instances": 2,
+    "threshold": 0.5
+  },
+  "Vanilla Cold Brew Coffee Concentrate": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Very Green Juice": {
+    "f_beta": 1.0,
+    "insufficient_data": false,
+    "n_gt_instances": 3,
+    "precision": 1.0,
+    "recall": 1.0,
+    "threshold": 0.25
+  },
+  "Well Rested Herbal Tea": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Yoghurt": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "Yogi Organic Ginger Tea": {
+    "insufficient_data": true,
+    "n_gt_instances": 2,
+    "threshold": 0.5
+  },
+  "Zico coconut water": {
+    "insufficient_data": true,
+    "n_gt_instances": 1,
+    "threshold": 0.5
+  },
+  "Zucchini": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  },
+  "coconut water": {
+    "insufficient_data": true,
+    "n_gt_instances": 0,
+    "threshold": 0.5
+  }
+}

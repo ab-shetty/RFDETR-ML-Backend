@@ -60,7 +60,14 @@ class RFDETR(LabelStudioMLBase):
         return control_models
 
     def predict(self, tasks: List[Dict], context: Optional[Dict] = None, **kwargs) -> ModelResponse:
-        logger.info(f"Run prediction on {len(tasks)} tasks, project ID = {self.project_id}")
+        # cascade_mode ("off" | "cascade" | "cascade_shelf_tags"), when present,
+        # overrides the CASCADE_ENABLED/SHELF_TAGS_ENABLED env vars for this
+        # call only -- see Label Studio's "Retrieve Predictions" action
+        # (data_manager/actions/basic.py), which is the only caller that sets
+        # it. Absent (None), predict_regions falls back to the env-var
+        # defaults this process started with.
+        cascade_mode = (context or {}).get("cascade_mode")
+        logger.info(f"Run prediction on {len(tasks)} tasks, project ID = {self.project_id}, cascade_mode={cascade_mode}")
         control_models = self.detect_control_models()
 
         predictions = []
@@ -68,7 +75,7 @@ class RFDETR(LabelStudioMLBase):
             regions = []
             for model in control_models:
                 path = model.get_path(task)
-                regions += model.predict_regions(path)
+                regions += model.predict_regions(path, cascade_mode=cascade_mode)
 
             all_scores = [r["score"] for r in regions if "score" in r]
             avg_score = sum(all_scores) / max(len(all_scores), 1)

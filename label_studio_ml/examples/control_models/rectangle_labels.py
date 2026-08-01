@@ -46,16 +46,29 @@ class RFDETRRectangleLabelsModel(ControlModel):
             logger.debug(f"No taxonomy path for class '{class_name}' (id={class_id})")
         return path
 
-    def predict_regions(self, path) -> List[Dict]:
+    def predict_regions(self, path, cascade_mode: Optional[str] = None) -> List[Dict]:
+        """
+        :param cascade_mode: "off" | "cascade" | "cascade_shelf_tags", or None
+            to use this process's CASCADE_ENABLED/SHELF_TAGS_ENABLED env vars
+            (the default for every caller except the "Retrieve Predictions"
+            UI action, which lets a user override it per run).
+        """
         image = Image.open(path).convert("RGB")
         width, height = image.size
+
+        if cascade_mode is None:
+            cascade_enabled = CASCADE_ENABLED
+            shelf_tags_enabled = SHELF_TAGS_ENABLED
+        else:
+            cascade_enabled = cascade_mode in ("cascade", "cascade_shelf_tags")
+            shelf_tags_enabled = cascade_mode == "cascade_shelf_tags"
 
         # Call the model with a low floor, then apply the real per-class cutoff
         # below — filtering at the model call would throw away class-specific
         # detail before we can use it. With the cascade on, drop the floor to
         # CASCADE_FLOOR so sub-threshold detections reach the cascade, which can
         # promote the real ones (recall recovery).
-        predict_floor = min(self.min_prediction_threshold(), CASCADE_FLOOR) if CASCADE_ENABLED else self.min_prediction_threshold()
+        predict_floor = min(self.min_prediction_threshold(), CASCADE_FLOOR) if cascade_enabled else self.min_prediction_threshold()
         detections = self.model.predict(image, threshold=predict_floor)
 
         regions = []
@@ -72,7 +85,7 @@ class RFDETRRectangleLabelsModel(ControlModel):
             class_name = self.class_names[class_id] if class_id < len(self.class_names) else None
             effective_threshold = self.get_effective_threshold(class_name) if class_name else self.model_score_threshold
 
-            if CASCADE_ENABLED and class_name:
+            if cascade_enabled and class_name:
                 # The cascade governs the whole [CASCADE_FLOOR, inf) range: it can
                 # reject above-threshold false positives AND promote below-threshold
                 # real detections. So don't pre-drop on the per-class threshold here —
@@ -101,7 +114,7 @@ class RFDETRRectangleLabelsModel(ControlModel):
 
             regions.extend(self._emit_regions(class_id, box_label, x1, y1, x2, y2, width, height, score))
 
-        if SHELF_TAGS_ENABLED and self.tag_class_map:
+        if shelf_tags_enabled and self.tag_class_map:
             self._apply_tag_corrections(image, regions)
 
         return regions

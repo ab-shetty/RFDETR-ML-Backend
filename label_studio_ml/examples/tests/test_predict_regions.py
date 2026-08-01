@@ -85,3 +85,49 @@ def test_model_is_called_with_the_lowest_threshold_as_a_floor(sample_image_path)
 
     called_threshold = instance.model.predict.call_args.kwargs["threshold"]
     assert called_threshold == 0.2
+
+
+def test_score_threshold_overrides_per_class_thresholds(sample_image_path):
+    # Apple's tuned 0.7 would drop this detection; an explicit per-run threshold
+    # of 0.5 must win, otherwise lowering the threshold in the UI does nothing.
+    detections = _fake_detections(class_ids=[0], confidences=[0.6], boxes=[[10, 10, 50, 50]])
+    instance = _instance(class_thresholds={"Apple": 0.7}, detections=detections)
+
+    regions = instance.predict_regions(sample_image_path, score_threshold=0.5)
+    labels = [r["value"]["rectanglelabels"][0] for r in regions if r["type"] == "rectanglelabels"]
+    assert labels == ["Apple"]
+
+
+def test_score_threshold_can_also_tighten(sample_image_path):
+    detections = _fake_detections(class_ids=[1], confidences=[0.6], boxes=[[10, 10, 50, 50]])
+    instance = _instance(class_thresholds={}, detections=detections, model_score_threshold=0.3)
+
+    regions = instance.predict_regions(sample_image_path, score_threshold=0.9)
+    assert regions == []
+
+
+def test_score_threshold_is_used_as_the_model_call_floor(sample_image_path):
+    detections = _fake_detections(class_ids=[], confidences=[], boxes=[])
+    instance = _instance(class_thresholds={"Apple": 0.2, "Banana": 0.8}, detections=detections)
+
+    instance.predict_regions(sample_image_path, score_threshold=0.35)
+
+    assert instance.model.predict.call_args.kwargs["threshold"] == 0.35
+
+
+def test_taxonomy_result_shares_its_box_id(sample_image_path):
+    # Label Studio links a per-region classification to its region by reusing the
+    # region's id; a separate id + parentID deserializes into an orphan area that
+    # no box can find, so the SKU never shows up on the region.
+    detections = _fake_detections(class_ids=[2], confidences=[0.9], boxes=[[10, 10, 50, 50]])
+    instance = _instance(class_thresholds={}, detections=detections)
+    instance.taxonomy_from_name = "sku"
+    instance.taxonomy_to_name = "image"
+    instance.taxonomy_path_map = {"San Pellegrino 6-pack": ["Beverage", "San Pellegrino 6-pack"]}
+
+    regions = instance.predict_regions(sample_image_path)
+
+    box = next(r for r in regions if r["type"] == "rectanglelabels")
+    tax = next(r for r in regions if r["type"] == "taxonomy")
+    assert tax["id"] == box["id"]
+    assert "parentID" not in tax

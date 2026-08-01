@@ -46,12 +46,20 @@ class RFDETRRectangleLabelsModel(ControlModel):
             logger.debug(f"No taxonomy path for class '{class_name}' (id={class_id})")
         return path
 
-    def predict_regions(self, path, cascade_mode: Optional[str] = None) -> List[Dict]:
+    def predict_regions(
+        self, path, cascade_mode: Optional[str] = None, score_threshold: Optional[float] = None
+    ) -> List[Dict]:
         """
         :param cascade_mode: "off" | "cascade" | "cascade_shelf_tags", or None
             to use this process's CASCADE_ENABLED/SHELF_TAGS_ENABLED env vars
             (the default for every caller except the "Retrieve Predictions"
             UI action, which lets a user override it per run).
+        :param score_threshold: single detection cutoff to apply to every class
+            for this call, overriding both the per-class thresholds and the
+            control's base threshold. None keeps the configured behavior. It is
+            a flat override rather than a floor so that lowering it in the UI
+            actually surfaces more boxes -- a floor would silently do nothing
+            whenever the per-class value was already higher.
         """
         image = Image.open(path).convert("RGB")
         width, height = image.size
@@ -68,7 +76,8 @@ class RFDETRRectangleLabelsModel(ControlModel):
         # detail before we can use it. With the cascade on, drop the floor to
         # CASCADE_FLOOR so sub-threshold detections reach the cascade, which can
         # promote the real ones (recall recovery).
-        predict_floor = min(self.min_prediction_threshold(), CASCADE_FLOOR) if cascade_enabled else self.min_prediction_threshold()
+        base_floor = score_threshold if score_threshold is not None else self.min_prediction_threshold()
+        predict_floor = min(base_floor, CASCADE_FLOOR) if cascade_enabled else base_floor
         detections = self.model.predict(image, threshold=predict_floor)
 
         regions = []
@@ -83,7 +92,12 @@ class RFDETRRectangleLabelsModel(ControlModel):
                 continue
 
             class_name = self.class_names[class_id] if class_id < len(self.class_names) else None
-            effective_threshold = self.get_effective_threshold(class_name) if class_name else self.model_score_threshold
+            if score_threshold is not None:
+                effective_threshold = score_threshold
+            elif class_name:
+                effective_threshold = self.get_effective_threshold(class_name)
+            else:
+                effective_threshold = self.model_score_threshold
 
             if cascade_enabled and class_name:
                 # The cascade governs the whole [CASCADE_FLOOR, inf) range: it can

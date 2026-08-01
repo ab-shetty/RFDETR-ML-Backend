@@ -66,8 +66,15 @@ class RFDETR(LabelStudioMLBase):
         # (data_manager/actions/basic.py), which is the only caller that sets
         # it. Absent (None), predict_regions falls back to the env-var
         # defaults this process started with.
+        # score_threshold likewise overrides the per-class/base detection cutoff
+        # for this call only, so a user can trade recall against precision from
+        # the UI without restarting the backend.
         cascade_mode = (context or {}).get("cascade_mode")
-        logger.info(f"Run prediction on {len(tasks)} tasks, project ID = {self.project_id}, cascade_mode={cascade_mode}")
+        score_threshold = (context or {}).get("score_threshold")
+        logger.info(
+            f"Run prediction on {len(tasks)} tasks, project ID = {self.project_id}, "
+            f"cascade_mode={cascade_mode}, score_threshold={score_threshold}"
+        )
         control_models = self.detect_control_models()
 
         predictions = []
@@ -75,7 +82,9 @@ class RFDETR(LabelStudioMLBase):
             regions = []
             for model in control_models:
                 path = model.get_path(task)
-                regions += model.predict_regions(path, cascade_mode=cascade_mode)
+                regions += model.predict_regions(
+                    path, cascade_mode=cascade_mode, score_threshold=score_threshold
+                )
 
             all_scores = [r["score"] for r in regions if "score" in r]
             avg_score = sum(all_scores) / max(len(all_scores), 1)

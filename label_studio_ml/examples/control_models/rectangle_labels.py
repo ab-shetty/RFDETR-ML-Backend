@@ -138,12 +138,16 @@ class RFDETRRectangleLabelsModel(ControlModel):
         }]
         tax_path = self._get_taxonomy_path(class_id)
         if tax_path and self.taxonomy_from_name:
+            # A per-region classification is linked to its region by REUSING the
+            # region's id, not by a separate id + parentID (parentID in Label
+            # Studio means region nesting -- a child region in the outliner
+            # tree -- which is a different feature). On deserialize LS groups
+            # results by id into one Area, so the box and its SKU must share it.
             out.append({
-                "id": self.make_region_id(),
+                "id": region_id,
                 "from_name": self.taxonomy_from_name,
                 "to_name": self.taxonomy_to_name or self.to_name,
                 "type": "taxonomy",
-                "parentID": region_id,
                 "value": {"taxonomy": [tax_path]},
                 "score": score,
             })
@@ -167,8 +171,8 @@ class RFDETRRectangleLabelsModel(ControlModel):
         if not tags:
             return
         name_to_id = {n: i for i, n in enumerate(self.class_names)}
-        tax_by_parent = {r["parentID"]: r for r in regions
-                         if r.get("type") == "taxonomy" and "parentID" in r}
+        # taxonomy results share their box's id (see _emit_regions)
+        tax_by_region = {r["id"]: r for r in regions if r.get("type") == "taxonomy"}
 
         for r in regions:
             if r.get("type") != "rectanglelabels":
@@ -187,18 +191,17 @@ class RFDETRRectangleLabelsModel(ControlModel):
             tax_path = self._get_taxonomy_path(name_to_id[cls])
             if not tax_path:
                 continue
-            existing = tax_by_parent.get(r["id"])
+            existing = tax_by_region.get(r["id"])
             if existing:
                 if existing["value"].get("taxonomy") != [tax_path]:
                     logger.debug(f"Shelf-tag corrected SKU to '{cls}' (tag '{tag['name']}')")
                     existing["value"]["taxonomy"] = [tax_path]
             elif self.taxonomy_from_name:
                 regions.append({
-                    "id": self.make_region_id(),
+                    "id": r["id"],
                     "from_name": self.taxonomy_from_name,
                     "to_name": self.taxonomy_to_name or self.to_name,
                     "type": "taxonomy",
-                    "parentID": r["id"],
                     "value": {"taxonomy": [tax_path]},
                     "score": r.get("score", 0.5),
                 })

@@ -86,7 +86,7 @@ def test_apply_tag_corrections_fixes_taxonomy_from_tag():
     # a box mis-classed as Apple, with a Very Green Juice tag in its column
     regions = [
         {"id": "r1", "type": "rectanglelabels", "value": {"x": 75, "y": 30, "width": 10, "height": 10}},
-        {"id": "t1", "type": "taxonomy", "parentID": "r1", "value": {"taxonomy": [["Produce", "Apple"]]}},
+        {"id": "r1", "type": "taxonomy", "value": {"taxonomy": [["Produce", "Apple"]]}},
     ]
     with patch("cascade.shelf_tags.detect_tags", return_value=[{"name": "VERY GREEN JUICE $2.99", "x": 0.8, "y": 0.42}]):
         m._apply_tag_corrections(Image.new("RGB", (100, 100)), regions)
@@ -98,7 +98,7 @@ def test_apply_tag_corrections_noop_without_matching_tag():
     m = _corrector_model({"VERY GREEN JUICE": "Very Green Juice"})
     regions = [
         {"id": "r1", "type": "rectanglelabels", "value": {"x": 5, "y": 5, "width": 10, "height": 10}},
-        {"id": "t1", "type": "taxonomy", "parentID": "r1", "value": {"taxonomy": [["Produce", "Apple"]]}},
+        {"id": "r1", "type": "taxonomy", "value": {"taxonomy": [["Produce", "Apple"]]}},
     ]
     with patch("cascade.shelf_tags.detect_tags", return_value=[{"name": "VERY GREEN JUICE", "x": 0.8, "y": 0.42}]):
         m._apply_tag_corrections(Image.new("RGB", (100, 100)), regions)

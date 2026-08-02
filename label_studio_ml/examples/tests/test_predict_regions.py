@@ -87,30 +87,30 @@ def test_model_is_called_with_the_lowest_threshold_as_a_floor(sample_image_path)
     assert called_threshold == 0.2
 
 
-def test_score_threshold_overrides_per_class_thresholds(sample_image_path):
-    # Apple's tuned 0.7 would drop this detection; an explicit per-run threshold
-    # of 0.5 must win, otherwise lowering the threshold in the UI does nothing.
+def test_detection_floor_overrides_per_class_thresholds(sample_image_path):
+    # Apple's tuned 0.7 would drop this detection; an explicit per-run floor of
+    # 0.5 must win, otherwise lowering the value in the UI does nothing.
     detections = _fake_detections(class_ids=[0], confidences=[0.6], boxes=[[10, 10, 50, 50]])
     instance = _instance(class_thresholds={"Apple": 0.7}, detections=detections)
 
-    regions = instance.predict_regions(sample_image_path, score_threshold=0.5)
+    regions = instance.predict_regions(sample_image_path, detection_floor=0.5)
     labels = [r["value"]["rectanglelabels"][0] for r in regions if r["type"] == "rectanglelabels"]
     assert labels == ["Apple"]
 
 
-def test_score_threshold_can_also_tighten(sample_image_path):
+def test_detection_floor_can_also_tighten(sample_image_path):
     detections = _fake_detections(class_ids=[1], confidences=[0.6], boxes=[[10, 10, 50, 50]])
     instance = _instance(class_thresholds={}, detections=detections, model_score_threshold=0.3)
 
-    regions = instance.predict_regions(sample_image_path, score_threshold=0.9)
+    regions = instance.predict_regions(sample_image_path, detection_floor=0.9)
     assert regions == []
 
 
-def test_score_threshold_is_used_as_the_model_call_floor(sample_image_path):
+def test_detection_floor_is_used_as_the_model_call_floor(sample_image_path):
     detections = _fake_detections(class_ids=[], confidences=[], boxes=[])
     instance = _instance(class_thresholds={"Apple": 0.2, "Banana": 0.8}, detections=detections)
 
-    instance.predict_regions(sample_image_path, score_threshold=0.35)
+    instance.predict_regions(sample_image_path, detection_floor=0.35)
 
     assert instance.model.predict.call_args.kwargs["threshold"] == 0.35
 
@@ -131,3 +131,33 @@ def test_taxonomy_result_shares_its_box_id(sample_image_path):
     tax = next(r for r in regions if r["type"] == "taxonomy")
     assert tax["id"] == box["id"]
     assert "parentID" not in tax
+
+
+def test_detection_floor_governs_the_cascade_floor(monkeypatch, sample_image_path):
+    """The regression this consolidation fixes: with the cascade on, the UI value
+    used to set only the threshold while CASCADE_FLOOR kept its env value, so
+    anything below the env floor was hard-rejected regardless -- 0.10 and 0.20
+    produced identical output. The single knob must now reach the cascade."""
+    import control_models.rectangle_labels as rl
+
+    seen = {}
+
+    def fake_verify(**kwargs):
+        seen["cascade_floor"] = kwargs["cascade_floor"]
+        from cascade.pipeline import Decision
+
+        return Decision.AUTO_ACCEPT
+
+    monkeypatch.setattr(rl, "CASCADE_ENABLED", True)
+    monkeypatch.setattr("cascade.pipeline.verify_detection", fake_verify)
+
+    detections = _fake_detections(class_ids=[0], confidences=[0.6], boxes=[[10, 10, 50, 50]])
+    instance = _instance(class_thresholds={"Apple": 0.7}, detections=detections)
+    instance.expected_text = {}
+    instance.reference_gallery = {}
+
+    instance.predict_regions(sample_image_path, cascade_mode="cascade", detection_floor=0.12)
+
+    assert seen["cascade_floor"] == 0.12
+    # and the model itself must be asked for detections down to that floor
+    assert instance.model.predict.call_args.kwargs["threshold"] <= 0.12

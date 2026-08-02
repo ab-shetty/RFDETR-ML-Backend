@@ -47,19 +47,29 @@ class RFDETRRectangleLabelsModel(ControlModel):
         return path
 
     def predict_regions(
-        self, path, cascade_mode: Optional[str] = None, score_threshold: Optional[float] = None
+        self, path, cascade_mode: Optional[str] = None, detection_floor: Optional[float] = None
     ) -> List[Dict]:
         """
         :param cascade_mode: "off" | "cascade" | "cascade_shelf_tags", or None
             to use this process's CASCADE_ENABLED/SHELF_TAGS_ENABLED env vars
             (the default for every caller except the "Retrieve Predictions"
             UI action, which lets a user override it per run).
-        :param score_threshold: single detection cutoff to apply to every class
-            for this call, overriding both the per-class thresholds and the
-            control's base threshold. None keeps the configured behavior. It is
-            a flat override rather than a floor so that lowering it in the UI
-            actually surfaces more boxes -- a floor would silently do nothing
-            whenever the per-class value was already higher.
+        :param detection_floor: the confidence below which nothing is kept, for
+            this call only. None uses the configured defaults.
+
+            This is deliberately ONE knob across all three modes, because
+            "discard below this confidence" means the same thing in each -- and
+            two separate cutoffs were genuinely confusing to use. With the
+            cascade on it replaces CASCADE_FLOOR (how deep the cascade may reach
+            to promote a detection) and the per-class thresholds still set the
+            confident/uncertain boundary above it. With the cascade off there is
+            no two-tier system, so it is simply the flat cutoff, overriding the
+            per-class thresholds.
+
+            Raising it always yields fewer boxes and lowering it always yields
+            more, in every mode. That was not true when the UI exposed the
+            threshold separately: below CASCADE_FLOOR the floor silently won, so
+            0.10 and 0.20 gave identical results with the cascade on.
         """
         image = Image.open(path).convert("RGB")
         width, height = image.size
@@ -71,13 +81,17 @@ class RFDETRRectangleLabelsModel(ControlModel):
             cascade_enabled = cascade_mode in ("cascade", "cascade_shelf_tags")
             shelf_tags_enabled = cascade_mode == "cascade_shelf_tags"
 
+        cascade_floor = detection_floor if detection_floor is not None else CASCADE_FLOOR
+
         # Call the model with a low floor, then apply the real per-class cutoff
         # below — filtering at the model call would throw away class-specific
         # detail before we can use it. With the cascade on, drop the floor to
-        # CASCADE_FLOOR so sub-threshold detections reach the cascade, which can
+        # cascade_floor so sub-threshold detections reach the cascade, which can
         # promote the real ones (recall recovery).
-        base_floor = score_threshold if score_threshold is not None else self.min_prediction_threshold()
-        predict_floor = min(base_floor, CASCADE_FLOOR) if cascade_enabled else base_floor
+        if cascade_enabled:
+            predict_floor = min(self.min_prediction_threshold(), cascade_floor)
+        else:
+            predict_floor = detection_floor if detection_floor is not None else self.min_prediction_threshold()
         detections = self.model.predict(image, threshold=predict_floor)
 
         regions = []
@@ -92,15 +106,22 @@ class RFDETRRectangleLabelsModel(ControlModel):
                 continue
 
             class_name = self.class_names[class_id] if class_id < len(self.class_names) else None
-            if score_threshold is not None:
-                effective_threshold = score_threshold
+            if cascade_enabled:
+                # Per-class thresholds keep their meaning here: they are the
+                # confident/uncertain boundary, not the cutoff. The cutoff is
+                # cascade_floor.
+                effective_threshold = (
+                    self.get_effective_threshold(class_name) if class_name else self.model_score_threshold
+                )
+            elif detection_floor is not None:
+                effective_threshold = detection_floor
             elif class_name:
                 effective_threshold = self.get_effective_threshold(class_name)
             else:
                 effective_threshold = self.model_score_threshold
 
             if cascade_enabled and class_name:
-                # The cascade governs the whole [CASCADE_FLOOR, inf) range: it can
+                # The cascade governs the whole [cascade_floor, inf) range: it can
                 # reject above-threshold false positives AND promote below-threshold
                 # real detections. So don't pre-drop on the per-class threshold here —
                 # pass the threshold in and let the cascade tier the decision.
@@ -116,7 +137,7 @@ class RFDETRRectangleLabelsModel(ControlModel):
                     expected_text=self.expected_text,
                     reference_gallery=self.reference_gallery,
                     nn_model=get_backbone_nn_module(self.model),
-                    cascade_floor=CASCADE_FLOOR,
+                    cascade_floor=cascade_floor,
                 )
                 if decision == Decision.AUTO_REJECT:
                     logger.debug(f"Cascade rejected '{class_name}' score={score:.3f}")

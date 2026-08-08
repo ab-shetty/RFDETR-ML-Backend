@@ -62,6 +62,19 @@ from cascade.shelf_tags import _encode, _get_client, normalize_tag  # noqa: E402
 # abbreviates a long SKU name, the other names a prepared salad that merely
 # mentions an ingredient -- so it is handed to the model that is already
 # looking at the frame instead.
+# gpt-5-mini was reading these HANDWRITTEN tags badly: it returned the single
+# boldest word ("SMOOTHIE" for a card reading ORGANIC COCONUT SMOOTHIE), dropped
+# brand lines, and sometimes described the tag instead of naming the product
+# ("SPARKLING WATER (BLUE OVAL LABEL ON GREEN BOXES)"). That made the taxonomy
+# look far more ambiguous than it is -- 30% of tag texts came out <=2 words,
+# which was an artifact of the reader, not the store. gpt-5 at the SAME minimal
+# effort reads them correctly in ~5s/frame. This pass is offline and cached, so
+# accuracy is worth much more than tokens here.
+#
+# Do NOT raise gpt-5-mini to medium effort as a cheaper fix: it then spends the
+# whole completion budget on reasoning and returns empty content.
+DEFAULT_MODEL = "gpt-5"
+
 FUZZY_MIN_SCORE = 65
 # Where the salvage bar sits is measured, not guessed. Scoring every tag the
 # model left unresolved against the master list, the band just below this is
@@ -88,9 +101,14 @@ def load_class_names(master_list_path):
 
 
 PROMPT_HEAD = (
-    "This is a grocery shelf. Each shelf has price tags on its front rail. "
-    "List EVERY price tag you can see. For each tag give:\n"
-    "  text  - the product NAME printed on the tag (skip price and fine print)\n"
+    "This is a Trader Joe's shelf. The price tags on the front rails are "
+    "HANDWRITTEN cards. List EVERY tag you can see. For each tag give:\n"
+    "  text  - the COMPLETE product name as written, including smaller or "
+    "lighter words above or below the big lettering (brand, 'ORGANIC', a "
+    "flavour). Do NOT shorten it to the boldest word: a card reading ORGANIC "
+    "COCONUT SMOOTHIE is not 'SMOOTHIE'. Do NOT describe the tag's colour or "
+    "position -- the product name only, skipping the price and the "
+    "bullet-point blurb.\n"
     "  x, y  - the tag's approximate center as fractions of width/height (0-1)\n"
     "  cls   - the ONE entry from the catalog below that names this same "
     "product, copied EXACTLY, or null if no catalog entry is that product.\n"
@@ -145,14 +163,14 @@ def resolve(cls_text, raw_text, name_to_id, names_upper, names):
     return None, None, "unresolved"
 
 
-def read_tags(image, prompt):
+def read_tags(image, prompt, model=DEFAULT_MODEL, effort="minimal"):
     """One vision call -> [{text, x, y, cls}]. Returns [] on any failure, the
     same contract as cascade.detect_tags: an indexer that dies on one bad
     response would lose the whole run."""
     try:
         r = _get_client().chat.completions.create(
-            model="gpt-5-mini", max_completion_tokens=3000,
-            reasoning_effort="minimal",
+            model=model, max_completion_tokens=4000,
+            reasoning_effort=effort,
             messages=[{"role": "user", "content": [
                 {"type": "text", "text": prompt},
                 {"type": "image_url",
@@ -169,7 +187,8 @@ def read_tags(image, prompt):
         return []
 
 
-def index_frame(path, prompt, name_to_id, names_upper, names):
+def index_frame(path, prompt, name_to_id, names_upper, names,
+                model=DEFAULT_MODEL, effort="minimal"):
     """One vision call -> this frame's entry. Never raises. A frame that reads
     no tags is a legitimate result, which is what `tag_count` distinguishes --
     a pool where many frames read 0 tags means the reader regressed, not that
@@ -177,7 +196,7 @@ def index_frame(path, prompt, name_to_id, names_upper, names):
     stem = os.path.splitext(os.path.basename(path))[0]
     try:
         with Image.open(path) as im:
-            tags = read_tags(im.convert("RGB"), prompt)
+            tags = read_tags(im.convert("RGB"), prompt, model, effort)
     except Exception as exc:                       # unreadable/truncated jpeg
         return stem, {"error": str(exc)[:200], "tags": [], "unmatched": []}
 
@@ -211,6 +230,8 @@ def main():
     ap.add_argument("--workers", type=int, default=8,
                     help="concurrent vision calls; each takes a few seconds")
     ap.add_argument("--checkpoint-every", type=int, default=25)
+    ap.add_argument("--model", default=DEFAULT_MODEL)
+    ap.add_argument("--reasoning-effort", default="minimal")
     args = ap.parse_args()
 
     names = load_class_names(args.master_list)
@@ -251,7 +272,8 @@ def main():
     done = 0
     start = time.time()
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
-        work = lambda p: index_frame(p, prompt, name_to_id, names_upper, names)
+        work = lambda p: index_frame(p, prompt, name_to_id, names_upper, names,
+                                     args.model, args.reasoning_effort)
         for stem, entry in pool.map(work, todo):
             with _lock:
                 index[stem] = entry

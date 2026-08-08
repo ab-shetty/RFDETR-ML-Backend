@@ -84,8 +84,11 @@ def word_overlap(tag_text, cls):
     abbreviation keeps the product's words ("VANILLA LATTE" inside "La Colombe
     Vanilla Cold Brew Draft Latte"), a mispairing shares nothing.
     """
-    a = set(normalize_tag(tag_text).split())
-    b = set(normalize_tag(cls).split())
+    # Alphabetic words only. normalize_tag keeps "+" and "&", and counting them
+    # as shared words let "SPARKLING ELDERBERRY + POMEGRANATE" clear the bar
+    # against "Organic Sparkling Lemon + Strawberry ..." on {SPARKLING, +}.
+    words = lambda s: {w for w in normalize_tag(s).split() if w.isalpha() and len(w) > 2}
+    a, b = words(tag_text), words(cls)
     return len(a & b) / len(a) if a else 0.0
 
 
@@ -118,6 +121,13 @@ def main():
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "label_studio_ml", "examples", "models", "tag_class_map.json"))
     ap.add_argument("--out", help="write here instead of in place")
+    ap.add_argument("--override", action="store_true", help=(
+        "let the learned map replace an answer the reader already resolved. OFF "
+        "by default: with a good reader the stale map does more harm than good "
+        "(it rewrote a correct 'La Colombe Vanilla Cold Brew Draft Latte' into "
+        "the Double Cold Brew), and the map's apparent accuracy is inflated "
+        "because it was LEARNED from the same human labels any evaluation "
+        "against those labels uses as its answer key"))
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
@@ -139,6 +149,9 @@ def main():
     for entry in doc["frames"].values():
         for t in entry.get("tags", []):
             before = t.get("class_name")
+            if before and not args.override:
+                sources["already-resolved"] = sources.get("already-resolved", 0) + 1
+                continue          # only fill gaps
             name, how = resolve(t["text"], tag_map, map_keys, names, names_upper,
                                 name_to_id, before)
             if name is not None and name not in name_to_id:

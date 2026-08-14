@@ -211,24 +211,74 @@ class ControlModel(BaseModel):
 
     @classmethod
     def load_rfdetr_model(cls, filename: str):
-        from rfdetr import RFDETRBase
+        """Build the architecture the checkpoint was actually trained with.
+
+        Both of these used to be hardcoded to the July 2026 checkpoint --
+        RFDETRBase with hand-tuned overrides, and `num_classes=180`. Neither
+        survives a retrain: the Class Master List grows, so the head widens
+        (180 -> 237 already), and rfdetr's loader responds to a width mismatch
+        by RE-INITIALIZING the detection head and logging a warning. The model
+        then serves random class scores while looking perfectly healthy, which
+        is indistinguishable from the model having got worse.
+
+        So read both from the checkpoint. Since rfdetr 1.9.2 it records
+        `model_name`, and the class count is always readable from the
+        classification weights: the head is one wider than the class count, the
+        extra slot being no-object. Pass the count, not the width -- rfdetr
+        silently reconciles a too-wide value against the checkpoint but
+        re-initializes on a too-narrow one, and only an exact match is
+        unambiguous.
+
+        Checkpoints predating `model_name` (the July one) get the original
+        hand-configured Base, which is what they were trained as.
+        """
+        import torch
 
         path = os.path.join(MODEL_ROOT, filename)
         class_names = load_class_names(path)
-        num_classes = len(class_names) if class_names else 91  # fallback to COCO default
 
-        logger.info(f"Loading RF-DETR model from: {path}")
-        model = RFDETRBase(
-            pretrain_weights=path,
-            num_classes=180,  # must match checkpoint (trained with 180)
-            resolution=384,
-            patch_size=16,
-            positional_encoding_size=24,
-            num_windows=2,
-            dec_layers=2,
-            out_feature_indexes=[3, 6, 9, 12],
-        )
-        logger.info(f"[MODEL LOADED] {path} | classes={num_classes}")
+        ckpt = torch.load(path, map_location="cpu", weights_only=False)
+        model_name = ckpt.get("model_name")
+        state = ckpt.get("state_dict") or ckpt.get("model") or {}
+        head_width = None
+        for key, value in state.items():
+            if "class_embed" in key and key.endswith("weight") and getattr(value, "ndim", 0) == 2:
+                head_width = int(value.shape[0])
+                break
+        del ckpt, state
+        if head_width is None:
+            raise RuntimeError(f"no classification head found in {path} -- is it an RF-DETR checkpoint?")
+        if class_names and len(class_names) != head_width - 1:
+            logger.warning(
+                f"{path} has a {head_width}-wide head ({head_width - 1} classes) but its .txt "
+                f"lists {len(class_names)} names. Class ids are read positionally, so the two "
+                f"must have been produced by the same deploy."
+            )
+
+        logger.info(f"Loading RF-DETR model from: {path} ({model_name or 'pre-1.9.2 checkpoint'}, "
+                    f"{head_width}-wide head)")
+        if model_name:
+            import rfdetr
+
+            model_cls = getattr(rfdetr, model_name, None)
+            if model_cls is None:
+                raise RuntimeError(f"{path} names architecture {model_name!r}, which this "
+                                   f"rfdetr install does not provide")
+            model = model_cls(pretrain_weights=path, num_classes=head_width - 1)
+        else:
+            from rfdetr import RFDETRBase
+
+            model = RFDETRBase(
+                pretrain_weights=path,
+                num_classes=head_width - 1,
+                resolution=384,
+                patch_size=16,
+                positional_encoding_size=24,
+                num_windows=2,
+                dec_layers=2,
+                out_feature_indexes=[3, 6, 9, 12],
+            )
+        logger.info(f"[MODEL LOADED] {path} | classes={len(class_names) if class_names else '?'}")
         logger.debug(f"[MODEL CLASSES] {path}: {class_names}")
         return model, class_names
 

@@ -100,8 +100,13 @@ Decision policy (`cascade/pipeline.py`): below the per-class threshold → rejec
 ```bash
 python scripts/build_ocr_expected_text.py --master-list /path/to/master_list.csv
 python scripts/build_reference_gallery.py --checkpoint models/checkpoint_best_total.pth \
-    --labeling-dir /path/to/labeling/completed
+    --dataset-dir /path/to/training-data/rf-detr-combined
 ```
+
+Normally you do not run the gallery step by hand: `tj-labeling-ops/deploy_checkpoint.py`
+rebuilds it against the new weights whenever a checkpoint is adopted, because a
+gallery built from a *different* checkpoint's backbone is not comparable to the
+one being served.
 
 Then set `CASCADE_ENABLED=true` and `OPENAI_API_KEY=<key>` in `.env`. Off by default — it adds real per-detection latency (OCR + a backbone forward pass, occasionally a GPT-5-mini call), so turn it on once the resource files above actually exist; before that it's a silent no-op.
 

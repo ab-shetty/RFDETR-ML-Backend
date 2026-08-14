@@ -1,32 +1,12 @@
 {
-  "100% Cherry Juice": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
   "100% Colombian Instant Coffee": {
     "insufficient_data": true,
     "n_gt_instances": 1,
     "threshold": 0.5
   },
-  "100% Cranberrry Juice": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
-  "100% Ginger Juice Drink Mix": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
-    "threshold": 0.5
-  },
-  "100% Honeycrisp Apple Cider": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
   "100% Mango Juice from Carabao Mangoes": {
     "insufficient_data": true,
-    "n_gt_instances": 1,
+    "n_gt_instances": 0,
     "threshold": 0.5
   },
   "100% Pomegranate Juice": {
@@ -47,11 +27,6 @@
   "Alkaline Water + Electrolytes": {
     "insufficient_data": true,
     "n_gt_instances": 0,
-    "threshold": 0.5
-  },
-  "Almond Beverage Unsweetened Original": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
     "threshold": 0.5
   },
   "Almond Breeze Unsweetened Original": {
@@ -199,19 +174,9 @@
     "n_gt_instances": 0,
     "threshold": 0.5
   },
-  "Country Peach Juice": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
   "Cranberry Clementine Sparkling Water": {
     "insufficient_data": true,
     "n_gt_instances": 2,
-    "threshold": 0.5
-  },
-  "Cranberry Clementine Sparkling Water (Bottle)": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
     "threshold": 0.5
   },
   "Cucumber": {
@@ -219,32 +184,12 @@
     "n_gt_instances": 0,
     "threshold": 0.5
   },
-  "Decaf Green Tea": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
-    "threshold": 0.5
-  },
-  "Decaf Joe Medium Roast Ground Coffee": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
-    "threshold": 0.5
-  },
   "Decaffeinated Black Tea": {
     "insufficient_data": true,
     "n_gt_instances": 1,
     "threshold": 0.5
   },
-  "English Breakfast Tea": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
   "Fair Trade Organic Bolivian Blend": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
-  "Fair Trade Organic Colombian Coffee Cups Medium Roast": {
     "insufficient_data": true,
     "n_gt_instances": 0,
     "threshold": 0.5
@@ -254,63 +199,28 @@
     "n_gt_instances": 0,
     "threshold": 0.5
   },
-  "French Market Sparkling Berryade": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
-    "threshold": 0.5
-  },
   "French Market Sparkling Lemonade": {
-    "f_beta": 1.0,
+    "f_beta": 0.909,
     "insufficient_data": false,
     "n_gt_instances": 3,
     "precision": 1.0,
-    "recall": 1.0,
-    "threshold": 0.3
-  },
-  "French Market Sparkling Limeade": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
-    "threshold": 0.5
+    "recall": 0.667,
+    "threshold": 0.35
   },
   "French Market Sparkling Pink Lemonade": {
-    "f_beta": 0.789,
+    "f_beta": 0.909,
     "insufficient_data": false,
     "n_gt_instances": 3,
-    "precision": 0.75,
-    "recall": 1.0,
-    "threshold": 0.25
-  },
-  "French Roast Coffee Cups Dark Roast": {
-    "insufficient_data": true,
-    "n_gt_instances": 2,
-    "threshold": 0.5
-  },
-  "French Roast Dark Roast": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
-    "threshold": 0.5
-  },
-  "French Vanilla Cold Brew Coffee": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
+    "precision": 1.0,
+    "recall": 0.667,
+    "threshold": 0.45
   },
   "GT's Guava Paloma Agua de Kefir": {
     "insufficient_data": true,
     "n_gt_instances": 1,
     "threshold": 0.5
   },
-  "GTS Alive Root Beer": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
   "Garlic": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
-  "Gerolsteiner Sparkling Mineral Water": {
     "insufficient_data": true,
     "n_gt_instances": 0,
     "threshold": 0.5
@@ -345,32 +255,7 @@
     "n_gt_instances": 0,
     "threshold": 0.5
   },
-  "Ground French Vanilla Coffee": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
-    "threshold": 0.5
-  },
-  "Health-Ade Kombucha": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
-  "Health-Ade Kombucha Pink Lady Apple": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
   "Hot Cocoa Mix": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
-  "Instant Coffee Packets": {
-    "insufficient_data": true,
-    "n_gt_instances": 2,
-    "threshold": 0.5
-  },
-  "Irish Breakfast Black Tea": {
     "insufficient_data": true,
     "n_gt_instances": 0,
     "threshold": 0.5
@@ -380,18 +265,10 @@
     "n_gt_instances": 0,
     "threshold": 0.5
   },
-  "Joe Dark Roast Ground Coffee": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
-    "threshold": 0.5
-  },
   "Joe Medium Roast Ground Coffee": {
-    "f_beta": 0.714,
-    "insufficient_data": false,
-    "n_gt_instances": 3,
-    "precision": 1.0,
-    "recall": 0.333,
-    "threshold": 0.35
+    "insufficient_data": true,
+    "n_gt_instances": 2,
+    "threshold": 0.5
   },
   "Joe Medium Roast Whole Bean Coffee": {
     "insufficient_data": true,
@@ -424,11 +301,11 @@
     "threshold": 0.5
   },
   "La Colombe\u00ae Vanilla Cold Brew Draft Latte": {
-    "f_beta": 0.526,
+    "f_beta": 0.455,
     "insufficient_data": false,
     "n_gt_instances": 3,
     "precision": 0.5,
-    "recall": 0.667,
+    "recall": 0.333,
     "threshold": 0.1
   },
   "Leek": {
@@ -444,11 +321,6 @@
   "Lemon Basil Pasta Salad": {
     "insufficient_data": true,
     "n_gt_instances": 0,
-    "threshold": 0.5
-  },
-  "Lemon Elderflower Soda": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
     "threshold": 0.5
   },
   "Lemon Sparkling Water": {
@@ -482,7 +354,7 @@
     "n_gt_instances": 3,
     "precision": 1.0,
     "recall": 1.0,
-    "threshold": 0.45
+    "threshold": 0.15
   },
   "Maple Pecan Cold Brew Coffee Concentrate": {
     "insufficient_data": true,
@@ -569,29 +441,9 @@
     "n_gt_instances": 0,
     "threshold": 0.5
   },
-  "Organic 100% Pomegranate Juice": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
-  "Organic Aloe Vera Drink With Pulp": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
-  "Organic Aloe Vera Juice": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
   "Organic Apple Juice Beverage": {
     "insufficient_data": true,
     "n_gt_instances": 0,
-    "threshold": 0.5
-  },
-  "Organic Black Assam Tea": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
     "threshold": 0.5
   },
   "Organic Blood Orange Rooibos Herbal Tea Blend": {
@@ -600,11 +452,6 @@
     "threshold": 0.5
   },
   "Organic Carrot Turmeric Juice Blend": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
-  "Organic Chamomile Herbal Tea": {
     "insufficient_data": true,
     "n_gt_instances": 0,
     "threshold": 0.5
@@ -629,11 +476,6 @@
     "n_gt_instances": 0,
     "threshold": 0.5
   },
-  "Organic Fair Trade Shade Grown Ethiopian Whole Bean Coffee": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
   "Organic Fair Trade Wake Up Blend Coffee": {
     "insufficient_data": true,
     "n_gt_instances": 1,
@@ -642,11 +484,6 @@
   "Organic French Roast Cold Brew Concentrate": {
     "insufficient_data": true,
     "n_gt_instances": 0,
-    "threshold": 0.5
-  },
-  "Organic French Roast Decaf": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
     "threshold": 0.5
   },
   "Organic Fruit Punch Juice Beverage": {
@@ -659,21 +496,6 @@
     "n_gt_instances": 1,
     "threshold": 0.5
   },
-  "Organic Green Darjeeling Tea": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
-    "threshold": 0.5
-  },
-  "Organic Green Tea": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
-  "Organic Green Tea & Lemonade": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
   "Organic Hot Cocoa Mix": {
     "insufficient_data": true,
     "n_gt_instances": 2,
@@ -681,7 +503,7 @@
   },
   "Organic Jalape\u00f1o Limeade": {
     "insufficient_data": true,
-    "n_gt_instances": 2,
+    "n_gt_instances": 1,
     "threshold": 0.5
   },
   "Organic Lemonade": {
@@ -694,14 +516,9 @@
     "n_gt_instances": 1,
     "threshold": 0.5
   },
-  "Organic Mango Nectar Juice": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
   "Organic Margarita Mix": {
     "insufficient_data": true,
-    "n_gt_instances": 2,
+    "n_gt_instances": 1,
     "threshold": 0.5
   },
   "Organic Mighty Turmeric Juice Shot": {
@@ -716,7 +533,7 @@
   },
   "Organic Non-Dairy Coconut Beverage Unsweetened": {
     "insufficient_data": true,
-    "n_gt_instances": 1,
+    "n_gt_instances": 0,
     "threshold": 0.5
   },
   "Organic Non-Dairy Rice Beverage": {
@@ -724,24 +541,9 @@
     "n_gt_instances": 1,
     "threshold": 0.5
   },
-  "Organic Non-Dairy Soy Beverage Unsweetened": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
-    "threshold": 0.5
-  },
-  "Organic Pineapple Probiotic Juice Shot": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
-    "threshold": 0.5
-  },
   "Organic Roasted Herbal Tea": {
     "insufficient_data": true,
     "n_gt_instances": 2,
-    "threshold": 0.5
-  },
-  "Organic Sparkling Elderberry + Pomegranate Apple Cider Vinegar Beverage": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
     "threshold": 0.5
   },
   "Organic Sparkling Ginger + Lemon Apple Cider Vinegar Beverage": {
@@ -755,16 +557,6 @@
     "threshold": 0.5
   },
   "Organic Sparkling Ros\u00e9 Tea Beverage": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
-  "Organic Strawberry Lemonade": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
-    "threshold": 0.5
-  },
-  "Organic Tea & Lemonade": {
     "insufficient_data": true,
     "n_gt_instances": 0,
     "threshold": 0.5
@@ -849,11 +641,6 @@
     "n_gt_instances": 0,
     "threshold": 0.5
   },
-  "Raspberry Lime Sparkling Water (Can)": {
-    "insufficient_data": true,
-    "n_gt_instances": 2,
-    "threshold": 0.5
-  },
   "Ready To Drink Cold Brew Coffee": {
     "insufficient_data": true,
     "n_gt_instances": 2,
@@ -874,37 +661,12 @@
     "n_gt_instances": 0,
     "threshold": 0.5
   },
-  "Reed's Extra Ginger Beer": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
-  "Reed's Zero Sugar Ginger Beer": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
-    "threshold": 0.5
-  },
-  "Rhubarb & Strawberry Soda": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
-    "threshold": 0.5
-  },
   "San Pellegrino": {
     "insufficient_data": true,
     "n_gt_instances": 0,
     "threshold": 0.5
   },
   "San Pellegrino 6-pack": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
-  "San Pellegrino Aranciata Rossa": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
-  "San Pellegrino Pompelmo": {
     "insufficient_data": true,
     "n_gt_instances": 0,
     "threshold": 0.5
@@ -916,7 +678,7 @@
   },
   "Seltzer Water flavored with Lemon and Ginger Juice": {
     "insufficient_data": true,
-    "n_gt_instances": 1,
+    "n_gt_instances": 0,
     "threshold": 0.5
   },
   "Shade Grown Espresso Blend": {
@@ -979,11 +741,6 @@
     "n_gt_instances": 0,
     "threshold": 0.5
   },
-  "Sparkling Honeycrisp Apple Juice Beverage": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
   "Sparkling Pomegrante Punch Beverage": {
     "insufficient_data": true,
     "n_gt_instances": 0,
@@ -991,7 +748,7 @@
   },
   "Sparkling Strawberry Juice": {
     "insufficient_data": true,
-    "n_gt_instances": 1,
+    "n_gt_instances": 0,
     "threshold": 0.5
   },
   "Sparkling Tea & Lemonade": {
@@ -1012,11 +769,6 @@
   "Spiced Chai Black Tea Concentrate": {
     "insufficient_data": true,
     "n_gt_instances": 1,
-    "threshold": 0.5
-  },
-  "Spiced Chai Tea": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
     "threshold": 0.5
   },
   "Spiced Cider": {
@@ -1049,16 +801,6 @@
     "n_gt_instances": 0,
     "threshold": 0.5
   },
-  "Synergy Elderberry Juniper Kombucha": {
-    "insufficient_data": true,
-    "n_gt_instances": 2,
-    "threshold": 0.5
-  },
-  "Synergy Strawberry Lemonade Kombucha": {
-    "insufficient_data": true,
-    "n_gt_instances": 2,
-    "threshold": 0.5
-  },
   "Tangerine Probiotic Sparkling Beverage": {
     "insufficient_data": true,
     "n_gt_instances": 0,
@@ -1070,11 +812,6 @@
     "threshold": 0.5
   },
   "Tejava Tea": {
-    "insufficient_data": true,
-    "n_gt_instances": 0,
-    "threshold": 0.5
-  },
-  "The Quartet": {
     "insufficient_data": true,
     "n_gt_instances": 0,
     "threshold": 0.5
@@ -1102,11 +839,6 @@
   "Tomato": {
     "insufficient_data": true,
     "n_gt_instances": 0,
-    "threshold": 0.5
-  },
-  "Tonic Water 4-pack": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
     "threshold": 0.5
   },
   "Triple Ginger Brew Sparkling Beverage": {
@@ -1140,25 +872,7 @@
     "n_gt_instances": 3,
     "precision": 1.0,
     "recall": 1.0,
-    "threshold": 0.45
-  },
-  "Villa Italia Italian Blood Orange Soda": {
-    "insufficient_data": true,
-    "n_gt_instances": 2,
-    "threshold": 0.5
-  },
-  "Villa Italia Italian Grapefruit Soda": {
-    "f_beta": 1.0,
-    "insufficient_data": false,
-    "n_gt_instances": 3,
-    "precision": 1.0,
-    "recall": 1.0,
-    "threshold": 0.2
-  },
-  "Virgil's Root Beer 4-pack": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
-    "threshold": 0.5
+    "threshold": 0.25
   },
   "Well Rested Herbal Tea": {
     "insufficient_data": true,
@@ -1168,11 +882,6 @@
   "Yoghurt": {
     "insufficient_data": true,
     "n_gt_instances": 0,
-    "threshold": 0.5
-  },
-  "Yogi Organic Elderberry Lemon Balm Immune + Stress Tea": {
-    "insufficient_data": true,
-    "n_gt_instances": 1,
     "threshold": 0.5
   },
   "Yogi Organic Ginger Tea": {
@@ -1192,7 +901,7 @@
   },
   "coconut water": {
     "insufficient_data": true,
-    "n_gt_instances": 2,
+    "n_gt_instances": 0,
     "threshold": 0.5
   }
 }

@@ -1,0 +1,11 @@
+{
+  "run_name": "rfdetr-nano-20260812-2202-173img-236cls",
+  "run_dir": "/home/ubuntu/Datasets/trader-joes/models/rfdetr-nano-20260812-2202-173img-236cls",
+  "deployed_at": "2026-08-14T19:54:23.477640+00:00",
+  "num_classes": 236,
+  "dataset_batches": [
+    "abhishek-3"
+  ],
+  "categories_sha256": "e74265bf59cd82965cd00a689ff9800abe061b3a49a1fc7ead548b6caef5114f",
+  "previous": null
+}

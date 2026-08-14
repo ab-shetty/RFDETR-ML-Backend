@@ -6,18 +6,25 @@ product-name text (Beverage/Food); Produce/Dairy items are typically loose
 and untagged or generically labeled (matches NO_OCR_CATEGORIES in
 build_ocr_expected_text.py) so a tag-based bootstrap can't help them.
 
+Counts come from the COCO training dataset (see coco_dataset.py) -- the train
+split specifically, since "blind" means RF-DETR never saw the class, and a
+class labeled only in valid is exactly as blind as one labeled nowhere.
+
 Usage:
     python scripts/find_blind_classes.py \\
         --master-list /home/ubuntu/Datasets/master_list.csv \\
-        --labeling-dir /home/ubuntu/Datasets/trader-joes/labeling/completed \\
+        --dataset-dir ~/Datasets/trader-joes/training-data/rf-detr-combined \\
         --out /tmp/blind_classes.json
 """
 import argparse
 import csv
-import glob
 import json
 import os
+import sys
 from collections import defaultdict
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from coco_dataset import add_dataset_args, iter_labeled_images  # noqa: E402
 
 NO_TAG_CATEGORIES = {"Produce", "Dairy"}
 
@@ -25,33 +32,17 @@ NO_TAG_CATEGORIES = {"Produce", "Dairy"}
 def parse_args():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--master-list", default="/home/ubuntu/Datasets/master_list.csv")
-    ap.add_argument("--labeling-dir", default="/home/ubuntu/Datasets/trader-joes/labeling/completed")
+    add_dataset_args(ap)
     ap.add_argument("--min-instances", type=int, default=3, help="classes with fewer labeled boxes than this count as blind")
     ap.add_argument("--out", default="/tmp/blind_classes.json")
     return ap.parse_args()
 
 
-def count_labeled_instances(labeling_dir):
-    """Standard 5-field YOLO label lines only (see build_reference_gallery.py
-    for why the ad-hoc 9-field batches are excluded)."""
+def count_labeled_instances(dataset_dir, splits):
     counts = defaultdict(int)
-    for entry in sorted(os.listdir(labeling_dir)):
-        batch = os.path.join(labeling_dir, entry)
-        classes_path = os.path.join(batch, "classes.txt")
-        labels_dir = os.path.join(batch, "labels")
-        if not (os.path.isdir(labels_dir) and os.path.exists(classes_path)):
-            continue
-        with open(classes_path) as f:
-            classes = [line.strip() for line in f if line.strip()]
-        for label_file in glob.glob(os.path.join(labels_dir, "*.txt")):
-            with open(label_file) as f:
-                for line in f:
-                    parts = line.split()
-                    if len(parts) != 5:
-                        continue
-                    class_id = int(parts[0])
-                    if class_id < len(classes):
-                        counts[classes[class_id]] += 1
+    for _path, _w, _h, boxes in iter_labeled_images(dataset_dir, splits):
+        for name, *_ in boxes:
+            counts[name] += 1
     return counts
 
 
@@ -65,7 +56,7 @@ def main():
             if name:
                 master.append((name, category))
 
-    counts = count_labeled_instances(args.labeling_dir)
+    counts = count_labeled_instances(args.dataset_dir, args.splits)
 
     blind = [
         {"class_name": name, "category": category, "instances": counts.get(name, 0)}

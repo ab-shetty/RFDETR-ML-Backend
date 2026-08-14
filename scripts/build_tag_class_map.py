@@ -7,23 +7,27 @@ box whose center is above the tag). Record (normalized_tag_text -> class).
 Aggregate across all frames into {tag: {class: count}} and write it as
 models/tag_class_map.json, consumed by cascade/shelf_tags.py.
 
-Only standard 5-field YOLO label batches are used (class cx cy w h); the
-ad-hoc 9-field polygon batches are skipped (same as build_reference_gallery).
+Boxes come from the COCO training dataset (see coco_dataset.py), train split
+only -- the map is consulted at inference time, so building it from valid or
+test would contaminate any later evaluation of shelf-tag correction.
+
+Costs one vision call per frame, so it is not something to re-run casually;
+--limit exists for a quick sanity run over a handful of frames.
 
 Usage:
     OPENAI_API_KEY=... python scripts/build_tag_class_map.py \\
-        --labeling-dir /home/ubuntu/Datasets/trader-joes/labeling/completed \\
-        --batches abhishek-1 abhishek-2
+        --dataset-dir ~/Datasets/trader-joes/training-data/rf-detr-combined
 """
 import argparse
-import glob
 import json
 import os
 import sys
 from collections import defaultdict
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "label_studio_ml", "examples"))
 from cascade.shelf_tags import detect_tags, normalize_tag  # noqa: E402
+from coco_dataset import add_dataset_args, iter_labeled_images  # noqa: E402
 from PIL import Image  # noqa: E402
 
 # max horizontal offset (fraction of width) for a tag and a product box to be
@@ -34,10 +38,9 @@ Y_MAX_GAP = 0.22
 
 def parse_args():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--labeling-dir", default="/home/ubuntu/Datasets/trader-joes/labeling/completed")
-    ap.add_argument("--batches", nargs="+", default=["abhishek-1", "abhishek-2"])
+    add_dataset_args(ap)
     ap.add_argument("--out", default=os.path.join(os.path.dirname(__file__), "..", "label_studio_ml", "examples", "models", "tag_class_map.json"))
-    ap.add_argument("--limit", type=int, default=None, help="cap frames per batch (for a quick run)")
+    ap.add_argument("--limit", type=int, default=None, help="cap frames processed (for a quick run)")
     return ap.parse_args()
 
 
@@ -57,37 +60,27 @@ def main():
     tag_map = defaultdict(lambda: defaultdict(int))
     n_frames = n_tags = n_paired = 0
 
-    for batch in args.batches:
-        bdir = os.path.join(args.labeling_dir, batch)
-        classes = [l.strip() for l in open(os.path.join(bdir, "classes.txt")) if l.strip()]
-        label_files = sorted(glob.glob(os.path.join(bdir, "labels", "*.txt")))
-        if args.limit:
-            label_files = label_files[: args.limit]
-        print(f"{batch}: {len(label_files)} frames")
-        for lf in label_files:
-            stem = os.path.splitext(os.path.basename(lf))[0]
-            img_path = os.path.join(bdir, "images", stem + ".jpg")
-            if not os.path.exists(img_path):
-                continue
-            boxes = []
-            for line in open(lf):
-                p = line.split()
-                if len(p) != 5:   # skip non-standard (9-field polygon) lines
-                    continue
-                cid = int(p[0]); cx, cy = float(p[1]), float(p[2])
-                if cid < len(classes):
-                    boxes.append((classes[cid], cx, cy))
-            if not boxes:
-                continue
-            image = Image.open(img_path).convert("RGB")
-            tags = detect_tags(image)
-            n_frames += 1; n_tags += len(tags)
-            for tag in tags:
-                cls = associate(tag, boxes)
-                if cls:
-                    tag_map[normalize_tag(tag["name"])][cls] += 1
-                    n_paired += 1
-            print(f"  {stem}: {len(tags)} tags, running paired={n_paired}", flush=True)
+    for img_path, width, height, coco_boxes in iter_labeled_images(
+            args.dataset_dir, args.splits):
+        if args.limit and n_frames >= args.limit:
+            break
+        # associate() works in normalized coordinates (X_TOL and Y_MAX_GAP are
+        # fractions of the frame, and detect_tags returns normalized centers),
+        # while COCO stores absolute pixel corners.
+        boxes = [(name, (x + w / 2) / width, (y + h / 2) / height)
+                 for name, x, y, w, h in coco_boxes]
+        if not boxes:
+            continue
+        image = Image.open(img_path).convert("RGB")
+        tags = detect_tags(image)
+        n_frames += 1; n_tags += len(tags)
+        for tag in tags:
+            cls = associate(tag, boxes)
+            if cls:
+                tag_map[normalize_tag(tag["name"])][cls] += 1
+                n_paired += 1
+        print(f"  {os.path.basename(img_path)}: {len(tags)} tags, "
+              f"running paired={n_paired}", flush=True)
 
     out = {tag: dict(counts) for tag, counts in tag_map.items()}
     os.makedirs(os.path.dirname(args.out), exist_ok=True)

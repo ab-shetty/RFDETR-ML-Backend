@@ -1,39 +1,48 @@
 #!/usr/bin/env python3
 """Build a per-class embedding reference gallery from already-labeled crops.
 
-Reads completed labeling batches (YOLO-polygon format: images/, labels/,
-classes.txt per batch), crops each labeled box, embeds it with the RF-DETR
-backbone (see cascade/embedding_match.py), and writes a per-class centroid
-to models/reference_gallery.npz. Used at inference time to check whether a
-detection's embedding actually looks like the class RF-DETR predicted.
+Reads the COCO training dataset the model was trained on, crops each labeled
+box, embeds it with the RF-DETR backbone (see cascade/embedding_match.py), and
+writes a per-class centroid to models/reference_gallery.npz. Used at inference
+time to check whether a detection's embedding actually looks like the class
+RF-DETR predicted.
 
-Caveat, same spirit as compute_class_thresholds.py: with only a handful of
-labeled batches, some classes will have very few reference crops — a
-centroid from 1-2 examples is a rough signal, not a precise one. Classes
-below --min-instances are simply omitted from the gallery (embedding_match
-already treats "not in gallery" as "no signal" rather than a rejection).
+**Reads the dataset, not the labeling folder.** This used to scan
+labeling/completed/ for batches in the YOLO images/ + labels/ + classes.txt
+layout. Two things then went wrong at once, quietly: the export pipeline moved
+to COCO and stopped producing that layout, and the last batches that still had
+it (abhishek-1, abhishek-2) were archived to to_review_for_deletion. What was
+left was clip1/clip2, whose 9-field polygon label lines this never parsed, so
+the builder found 101 crops in 3 classes and cheerfully wrote a 3-class gallery
+to replace a 115-class one. Reading the dataset removes the whole class of
+problem: it is the same COCO that trained the weights and named the classes, so
+the gallery cannot drift away from the model it describes.
 
-Scope note: only covers completed batches with the images/ + labels/ +
-classes.txt layout, standard 5-field YOLO (class cx cy w h) label lines.
-clip1.labels/clip2.labels used an ad-hoc 9-field 4-corner-polygon format by
-mistake (not a second valid format) — those lines are skipped, not parsed.
-Batches exported as a raw Label Studio result.json (clip3.labels,
-clip4.labels) aren't parsed here either; add a parser for that format if/when
-it's worth the reference examples they'd contribute.
+Train split only, by default. Embedding valid/test crops would make the
+cascade's own evaluation meaningless later, and the gallery is not something
+you tune against a held-out set anyway.
+
+Caveat, same spirit as compute_class_thresholds.py: at this dataset size some
+classes have very few reference crops — a centroid from 1-2 examples is a rough
+signal, not a precise one. Classes below --min-instances are omitted, and
+embedding_match already treats "not in gallery" as "no signal" rather than as a
+rejection.
 
 Usage:
     python scripts/build_reference_gallery.py \\
         --checkpoint label_studio_ml/examples/models/checkpoint_best_total.pth \\
-        --labeling-dir /home/ubuntu/Datasets/trader-joes/labeling/completed
+        --dataset-dir ~/Datasets/trader-joes/training-data/rf-detr-combined
 """
 import argparse
-import glob
 import logging
 import os
 import sys
 from collections import defaultdict
 
 import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from coco_dataset import add_dataset_args, iter_labeled_images, split_summary  # noqa: E402
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
@@ -45,46 +54,10 @@ def parse_args():
         "--checkpoint",
         default=os.path.join(os.path.dirname(__file__), "..", "label_studio_ml", "examples", "models", "checkpoint_best_total.pth"),
     )
-    ap.add_argument(
-        "--labeling-dir",
-        default="/home/ubuntu/Datasets/trader-joes/labeling/completed",
-        help="Directory containing completed labeling batches",
-    )
+    add_dataset_args(ap)
     ap.add_argument("--out", default=None, help="Output .npz path (default: reference_gallery.npz next to --checkpoint)")
     ap.add_argument("--min-instances", type=int, default=1, help="Classes with fewer crops than this are omitted")
     return ap.parse_args()
-
-
-def yolo_to_bbox(cx, cy, w, h, width, height):
-    """Standard YOLO normalized [center_x, center_y, w, h] -> pixel [x1,y1,x2,y2]."""
-    x1 = (cx - w / 2) * width
-    y1 = (cy - h / 2) * height
-    x2 = (cx + w / 2) * width
-    y2 = (cy + h / 2) * height
-    return x1, y1, x2, y2
-
-
-def parse_label_line(parts, width, height):
-    """Standard 5-field YOLO (class cx cy w h). Some older batches
-    (clip1/clip2) used an ad-hoc 9-field 4-corner polygon format instead —
-    that was a labeling-process mistake, not a second valid format, so those
-    lines are treated as unrecognized and skipped rather than parsed.
-    """
-    if len(parts) == 5:
-        class_id = int(parts[0])
-        cx, cy, w, h = (float(v) for v in parts[1:])
-        return class_id, yolo_to_bbox(cx, cy, w, h, width, height)
-    return None
-
-
-def find_yolo_batches(labeling_dir):
-    """Batches with the images/ + labels/ + classes.txt layout."""
-    batches = []
-    for entry in sorted(os.listdir(labeling_dir)):
-        batch_dir = os.path.join(labeling_dir, entry)
-        if os.path.isdir(os.path.join(batch_dir, "images")) and os.path.isdir(os.path.join(batch_dir, "labels")) and os.path.exists(os.path.join(batch_dir, "classes.txt")):
-            batches.append(batch_dir)
-    return batches
 
 
 def main():
@@ -103,47 +76,23 @@ def main():
     rfdetr_model, _ = ControlModel.load_rfdetr_model(checkpoint_name)
     nn_model = get_backbone_nn_module(rfdetr_model)
 
-    batches = find_yolo_batches(args.labeling_dir)
-    if not batches:
-        raise SystemExit(f"No YOLO-format labeling batches found under {args.labeling_dir}")
-    print(f"Found {len(batches)} usable batches: {[os.path.basename(b) for b in batches]}")
+    print(split_summary(args.dataset_dir, args.splits))
 
     embeddings_by_class = defaultdict(list)
-
-    for batch_dir in batches:
-        with open(os.path.join(batch_dir, "classes.txt")) as f:
-            batch_classes = [line.strip() for line in f if line.strip()]
-
-        label_files = sorted(glob.glob(os.path.join(batch_dir, "labels", "*.txt")))
-        print(f"  {os.path.basename(batch_dir)}: {len(label_files)} labeled images, {len(batch_classes)} classes")
-
-        for label_file in label_files:
-            stem = os.path.splitext(os.path.basename(label_file))[0]
-            image_path = os.path.join(batch_dir, "images", stem + ".jpg")
-            if not os.path.exists(image_path):
+    missing = []
+    for image_path, _width, _height, boxes in iter_labeled_images(
+            args.dataset_dir, args.splits, on_missing=missing.append):
+        image = Image.open(image_path).convert("RGB")
+        for class_name, x, y, w, h in boxes:
+            if w < 2 or h < 2:
                 continue
-            image = Image.open(image_path).convert("RGB")
-            width, height = image.size
+            crop = image.crop((x, y, x + w, y + h))
+            embedding = extract_embedding(nn_model, crop)
+            if np.any(embedding):
+                embeddings_by_class[class_name].append(embedding)
 
-            with open(label_file) as f:
-                for line in f:
-                    parts = line.split()
-                    if not parts:
-                        continue
-                    parsed = parse_label_line(parts, width, height)
-                    if parsed is None:
-                        logger.warning(f"Unrecognized label line shape ({len(parts)} fields) in {label_file}, skipping")
-                        continue
-                    class_id, (x1, y1, x2, y2) = parsed
-                    if class_id >= len(batch_classes):
-                        continue
-                    class_name = batch_classes[class_id]
-                    if x2 - x1 < 2 or y2 - y1 < 2:
-                        continue
-                    crop = image.crop((x1, y1, x2, y2))
-                    embedding = extract_embedding(nn_model, crop)
-                    if np.any(embedding):
-                        embeddings_by_class[class_name].append(embedding)
+    if missing:
+        logger.warning(f"{len(missing)} images listed in COCO were not on disk")
 
     class_names = []
     centroids = []

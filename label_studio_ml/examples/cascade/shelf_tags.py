@@ -33,7 +33,17 @@ from rapidfuzz import fuzz, process
 
 logger = logging.getLogger(__name__)
 
-MODEL = "gpt-5-mini"
+# Overridable so the offline harness (tj-labeling-ops/pipeline_dryrun.py) can
+# price and score a different model without editing this file. The default
+# stays on the incumbent until a dry run says otherwise.
+MODEL = os.getenv("SHELF_TAG_MODEL", "gpt-5-mini")
+# The gpt-5.6 family renamed the cheapest reasoning setting: "minimal" is
+# rejected with a 400 and "none" means what it used to. Picked from the model
+# id so switching models does not silently start paying for reasoning, or
+# fail every call -- which is exactly what the first Luna dry run did.
+REASONING_EFFORT = os.getenv(
+    "SHELF_TAG_REASONING_EFFORT",
+    "none" if MODEL.startswith("gpt-5.6") else "minimal")
 _client = None
 
 # Product slot sits directly above its tag. Measured on labeled frames, the
@@ -76,7 +86,7 @@ def detect_tags(image: Image.Image) -> List[Dict]:
     )
     try:
         r = _get_client().chat.completions.create(
-            model=MODEL, max_completion_tokens=1500, reasoning_effort="minimal",
+            model=MODEL, max_completion_tokens=1500, reasoning_effort=REASONING_EFFORT,
             messages=[{"role": "user", "content": [
                 {"type": "text", "text": prompt},
                 {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{_encode(image)}"}},

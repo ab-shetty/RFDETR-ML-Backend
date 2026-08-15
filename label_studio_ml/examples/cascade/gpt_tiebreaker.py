@@ -12,20 +12,29 @@ import base64
 import io
 import json
 import logging
+import os
 from typing import List, Optional
 
 from PIL import Image
 
 logger = logging.getLogger(__name__)
 
-MODEL = "gpt-5-mini"
+# Overridable for the same reason as shelf_tags.MODEL: the offline harness
+# swaps it to measure a candidate model, production default is unchanged.
+MODEL = os.getenv("GPT_TIEBREAKER_MODEL", "gpt-5-mini")
 # gpt-5-mini is a reasoning model: max_completion_tokens covers reasoning
 # tokens AND the visible answer. A small budget (e.g. 50) gets entirely
 # consumed by reasoning, returning empty content with finish_reason=length.
 # reasoning_effort="minimal" keeps reasoning tokens ~0 for this simple
 # classification, and the budget leaves ample room for the tiny JSON answer.
 MAX_OUTPUT_TOKENS = 2000
-REASONING_EFFORT = "minimal"
+# The gpt-5.6 family renamed the cheapest reasoning setting: "minimal" is
+# rejected with a 400 and "none" means what it used to. Picked from the model
+# id so switching models does not silently start paying for reasoning, or
+# fail every call -- which is exactly what the first Luna dry run did.
+REASONING_EFFORT = os.getenv(
+    "GPT_TIEBREAKER_REASONING_EFFORT",
+    "none" if MODEL.startswith("gpt-5.6") else "minimal")
 
 _client = None
 

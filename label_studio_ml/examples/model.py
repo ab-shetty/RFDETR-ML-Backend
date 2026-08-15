@@ -22,7 +22,49 @@ class RFDETR(LabelStudioMLBase):
     """Label Studio ML Backend based on RF-DETR"""
 
     def setup(self):
-        self.set("model_version", "rfdetr")
+        self.set("model_version", self._version())
+
+    @staticmethod
+    def _version() -> str:
+        """What produced a prediction: the checkpoint AND the pipeline around it.
+
+        This was the constant string "rfdetr" through every retrain and every
+        change to the cascade, so Label Studio could not tell a prediction made
+        by the July 179-class model from one made today -- and anything that
+        skips re-prediction when the version matches would serve the old one
+        forever. Stale predictions are invisible precisely because the field
+        that exists to expose them never moved.
+
+        The flags belong in it as much as the weights do: the same checkpoint
+        with box proposals on produces materially different regions.
+        """
+        import json
+        import os
+
+        from control_models.base import CASCADE_ENABLED, MODEL_ROOT, SHELF_TAGS_ENABLED
+
+        run = "unknown-run"
+        deployed = os.path.join(MODEL_ROOT, "deployed.json")
+        if os.path.exists(deployed):
+            try:
+                run = json.load(open(deployed)).get("run_name") or run
+            except Exception:
+                pass
+        else:
+            ckpt = os.path.join(MODEL_ROOT, "checkpoint_best_total.pth")
+            if os.path.exists(ckpt):
+                run = f"unrecorded-{int(os.path.getmtime(ckpt))}"
+
+        from cascade.template_match import TEMPLATE_MATCHING_ENABLED
+        from control_models.box_proposals import BOX_PROPOSALS_ENABLED
+
+        flags = "".join(f"+{n}" for n, on in (
+            ("cascade", CASCADE_ENABLED),
+            ("tags", SHELF_TAGS_ENABLED),
+            ("box", BOX_PROPOSALS_ENABLED),
+            ("tpl", TEMPLATE_MATCHING_ENABLED),
+        ) if on)
+        return f"{run}{flags}"
 
     def detect_control_models(self) -> List[ControlModel]:
         control_models = []

@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Overridable for the same reason as shelf_tags.MODEL: the offline harness
 # swaps it to measure a candidate model, production default is unchanged.
-MODEL = os.getenv("GPT_TIEBREAKER_MODEL", "gpt-5-mini")
+MODEL = os.getenv("GPT_TIEBREAKER_MODEL", "gpt-5.6-luna")
 # gpt-5-mini is a reasoning model: max_completion_tokens covers reasoning
 # tokens AND the visible answer. A small budget (e.g. 50) gets entirely
 # consumed by reasoning, returning empty content with finish_reason=length.

@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 # Overridable so the offline harness (tj-labeling-ops/pipeline_dryrun.py) can
 # price and score a different model without editing this file. The default
 # stays on the incumbent until a dry run says otherwise.
-MODEL = os.getenv("SHELF_TAG_MODEL", "gpt-5-mini")
+MODEL = os.getenv("SHELF_TAG_MODEL", "gpt-5.6-luna")
 # The gpt-5.6 family renamed the cheapest reasoning setting: "minimal" is
 # rejected with a 400 and "none" means what it used to. Picked from the model
 # id so switching models does not silently start paying for reasoning, or

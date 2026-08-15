@@ -47,7 +47,8 @@ class RFDETRRectangleLabelsModel(ControlModel):
         return path
 
     def predict_regions(
-        self, path, cascade_mode: Optional[str] = None, detection_floor: Optional[float] = None
+        self, path, cascade_mode: Optional[str] = None, detection_floor: Optional[float] = None,
+        propose_boxes: Optional[bool] = None, name_proposals: Optional[bool] = None,
     ) -> List[Dict]:
         """
         :param cascade_mode: "off" | "cascade" | "cascade_shelf_tags", or None
@@ -166,8 +167,9 @@ class RFDETRRectangleLabelsModel(ControlModel):
         # cannot name a box that nothing else has looked at yet.
         from control_models.box_proposals import BOX_PROPOSALS_ENABLED
 
-        if BOX_PROPOSALS_ENABLED:
-            self._add_box_proposals(image, regions, width, height)
+        want_boxes = BOX_PROPOSALS_ENABLED if propose_boxes is None else propose_boxes
+        if want_boxes:
+            self._add_box_proposals(image, regions, width, height, name_proposals)
 
         return regions
 
@@ -250,7 +252,7 @@ class RFDETRRectangleLabelsModel(ControlModel):
         union = (ax2-ax1)*(ay2-ay1) + (bx2-bx1)*(by2-by1) - inter
         return inter / union if union > 0 else 0.0
 
-    def _add_box_proposals(self, image, regions, width, height):
+    def _add_box_proposals(self, image, regions, width, height, name_proposals=None):
         """Append facings the SKU model missed, named only where confident.
 
         A proposal with no SKU is the intended outcome, not a failure: the
@@ -289,7 +291,9 @@ class RFDETRRectangleLabelsModel(ControlModel):
                 },
                 "score": score,
             })
-            if not TEMPLATE_MATCHING_ENABLED or not self.taxonomy_from_name:
+            want_names = (TEMPLATE_MATCHING_ENABLED if name_proposals is None
+                          else name_proposals)
+            if not want_names or not self.taxonomy_from_name:
                 continue
             name, _n = name_crop(image.crop((x1, y1, x2, y2)), MODEL_ROOT)
             path = self.taxonomy_path_map.get(name) if name else None

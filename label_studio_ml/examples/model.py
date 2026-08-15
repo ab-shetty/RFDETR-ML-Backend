@@ -114,6 +114,12 @@ class RFDETR(LabelStudioMLBase):
         # floor and the plain-mode threshold -- see predict_regions for why.
         cascade_mode = (context or {}).get("cascade_mode")
         detection_floor = (context or {}).get("detection_floor")
+        # Box proposals and template naming are separate axes from the cascade:
+        # a run can want boxes without guessed names (a new store visit, where
+        # most SKUs have no template and a name would just be wrong) or the
+        # bare detector for comparison. None means "use the env default".
+        propose_boxes = (context or {}).get("propose_boxes")
+        name_proposals = (context or {}).get("name_proposals")
         logger.info(
             f"Run prediction on {len(tasks)} tasks, project ID = {self.project_id}, "
             f"cascade_mode={cascade_mode}, detection_floor={detection_floor}"
@@ -126,7 +132,8 @@ class RFDETR(LabelStudioMLBase):
             for model in control_models:
                 path = model.get_path(task)
                 regions += model.predict_regions(
-                    path, cascade_mode=cascade_mode, detection_floor=detection_floor
+                    path, cascade_mode=cascade_mode, detection_floor=detection_floor,
+                    propose_boxes=propose_boxes, name_proposals=name_proposals
                 )
 
             all_scores = [r["score"] for r in regions if "score" in r]

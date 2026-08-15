@@ -17,7 +17,7 @@ and recall, instead of only filtering):
 
 Cost control: OCR only runs for classes with expected label text; the
 embedding forward pass only runs for classes present in the reference
-gallery; GPT-5-mini fires only on genuine cheap-signal disagreement. A
+gallery; gpt-5.6-luna fires only on genuine cheap-signal disagreement. A
 detection with no available signal costs almost nothing and falls back to
 "trust the threshold" (accept if confident, drop if uncertain) — i.e. the
 cascade never makes things worse than threshold-only for those classes.
@@ -92,5 +92,5 @@ def verify_detection(
         # everything refutes: reject in either tier (kills confident false positives too)
         return Decision.AUTO_REJECT
 
-    # Cheap signals disagree with each other -> worth a GPT-5-mini call.
+    # Cheap signals disagree with each other -> worth a gpt-5.6-luna call.
     return _gpt_decide(crop, class_name, neighbors)

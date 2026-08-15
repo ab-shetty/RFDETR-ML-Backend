@@ -19,7 +19,14 @@ services:
       - ALLOW_CUSTOM_MODEL_PATH=true
       - MODEL_SCORE_THRESHOLD=0.5
       - MODEL_ROOT=/app/models
-      # OCR + embedding + GPT-5-mini verification cascade (see cascade/pipeline.py).
+      # Box proposals + template naming (see control_models/box_proposals.py
+      # and cascade/template_match.py). Disable themselves if their model
+      # files are absent, so leaving these on is safe on a fresh machine.
+      - BOX_PROPOSALS_ENABLED=${BOX_PROPOSALS_ENABLED:-true}
+      - BOX_PROPOSALS_THRESHOLD=${BOX_PROPOSALS_THRESHOLD:-0.5}
+      - TEMPLATE_MATCHING_ENABLED=${TEMPLATE_MATCHING_ENABLED:-true}
+      - TEMPLATE_MIN_MATCHES=${TEMPLATE_MIN_MATCHES:-18}
+      # OCR + embedding + gpt-5.6-luna verification cascade (see cascade/pipeline.py).
       # Off by default; set CASCADE_ENABLED=true once ocr_expected_text.json and
       # reference_gallery.npz exist in ./models (scripts/build_ocr_expected_text.py,
       # scripts/build_reference_gallery.py).

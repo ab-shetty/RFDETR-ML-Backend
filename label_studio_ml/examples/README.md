@@ -85,15 +85,47 @@ An explicit `model_score_threshold` set on the `<RectangleLabels>` labeling-conf
 
 ---
 
-## Verification cascade (OCR + embedding match + GPT-5-mini)
+## Box proposals + template naming
 
-Per-class thresholds alone can't fix a class the model barely has data for — no threshold rescues a detector that's never learned to recognize something reliably. The cascade adds two cheap, fast signals plus a GPT-5-mini tiebreaker used only when they disagree, filtering junk detections *before* they become Label Studio pre-annotations rather than after a human deletes them:
+The SKU detector only detects what it recognises, so a facing it never boxes is
+one it already declined to identify — asked to classify such a crop it gets 7 of
+79 right, against 77% on boxes it found itself. Two stages cover that gap.
+
+1. **Box proposals** (`control_models/box_proposals.py`, `BOX_PROPOSALS_ENABLED`)
+   — a class-agnostic facing detector proposes rectangles the SKU model did not
+   draw, deduplicated against the ones it did. Proposals carry **no SKU on
+   purpose**: the Taxonomy control is `perRegion required`, so an unnamed box
+   cannot be submitted, and in this fork naming a proposed region is what
+   accepts it. The labeller reads and types instead of reading, drawing and
+   typing.
+2. **Template naming** (`cascade/template_match.py`, `TEMPLATE_MATCHING_ENABLED`)
+   — ORB keypoint matching against per-instance labelled crops
+   (`models/template_bank.npz`, built by `scripts/build_template_bank.py`) names
+   those proposals where it is confident. `TEMPLATE_MIN_MATCHES` defaults to 18
+   because the stage is **never right about a SKU absent from its bank** — there
+   is nothing to match — so the bar exists to keep it silent there rather than
+   to trade accuracy.
+
+Both disable themselves with a warning when their model file is missing, so a
+machine without them degrades to plain detection rather than erroring. Also
+always on: cross-class dedupe, since RF-DETR runs NMS per class but not across
+classes — every one of the SKU model's 31 false positives on the held-out clips
+was the same facing under a competing name.
+
+Measured with `tj-labeling-ops/pipeline_dryrun.py`, which scores the whole
+pipeline offline as labelling work (boxes to draw, strays to delete, names to
+fix) rather than as mAP. Read its caveats before quoting any number from it:
+most of the current eval data overlaps the training set.
+
+## Verification cascade (OCR + embedding match + gpt-5.6-luna)
+
+Per-class thresholds alone can't fix a class the model barely has data for — no threshold rescues a detector that's never learned to recognize something reliably. The cascade adds two cheap, fast signals plus a gpt-5.6-luna tiebreaker used only when they disagree, filtering junk detections *before* they become Label Studio pre-annotations rather than after a human deletes them:
 
 1. **OCR** (`cascade/ocr.py`) — reads text off the crop, fuzzy-matches against the class's expected label text. Only meaningful for branded/text-bearing products; produce and generic dairy classes have no expected text, so OCR contributes no signal there by design.
 2. **Embedding match** (`cascade/embedding_match.py`) — embeds the crop with the RF-DETR backbone and compares against a per-class reference gallery built from already-labeled crops.
-3. **GPT-5-mini** (`cascade/gpt_tiebreaker.py`) — called *only* when OCR and embedding-match disagree with each other. Not run on every detection — that would be slow and expensive at real label-batch volume.
+3. **gpt-5.6-luna** (`cascade/gpt_tiebreaker.py`) — called *only* when OCR and embedding-match disagree with each other. Not run on every detection — that would be slow and expensive at real label-batch volume.
 
-Decision policy (`cascade/pipeline.py`): below the per-class threshold → reject outright; no signal available for this class at all → trust the threshold; every available signal agrees → accept; every signal disagrees → reject; signals disagree with *each other* → ask GPT-5-mini.
+Decision policy (`cascade/pipeline.py`): below the per-class threshold → reject outright; no signal available for this class at all → trust the threshold; every available signal agrees → accept; every signal disagrees → reject; signals disagree with *each other* → ask gpt-5.6-luna.
 
 **Setup:**
 
@@ -108,7 +140,7 @@ rebuilds it against the new weights whenever a checkpoint is adopted, because a
 gallery built from a *different* checkpoint's backbone is not comparable to the
 one being served.
 
-Then set `CASCADE_ENABLED=true` and `OPENAI_API_KEY=<key>` in `.env`. Off by default — it adds real per-detection latency (OCR + a backbone forward pass, occasionally a GPT-5-mini call), so turn it on once the resource files above actually exist; before that it's a silent no-op.
+Then set `CASCADE_ENABLED=true` and `OPENAI_API_KEY=<key>` in `.env`. Off by default — it adds real per-detection latency (OCR + a backbone forward pass, occasionally a gpt-5.6-luna call), so turn it on once the resource files above actually exist; before that it's a silent no-op.
 
 ---
 

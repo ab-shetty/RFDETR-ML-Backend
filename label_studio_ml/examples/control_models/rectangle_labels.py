@@ -49,12 +49,19 @@ class RFDETRRectangleLabelsModel(ControlModel):
     def predict_regions(
         self, path, cascade_mode: Optional[str] = None, detection_floor: Optional[float] = None,
         propose_boxes: Optional[bool] = None, name_proposals: Optional[bool] = None,
+        name_boxes: Optional[bool] = None,
     ) -> List[Dict]:
         """
         :param cascade_mode: "off" | "cascade" | "cascade_shelf_tags", or None
             to use this process's CASCADE_ENABLED/SHELF_TAGS_ENABLED env vars
             (the default for every caller except the "Retrieve Predictions"
             UI action, which lets a user override it per run).
+        :param name_boxes: name every box by showing the drawn boxes to a vision
+            model (see cascade/box_naming.py), overriding the class head's
+            guesses. None uses BOX_NAMING_ENABLED. This is the naming stage for
+            a store the detector has never seen: the head learned its names from
+            one visit, the shelf tag is reprinted whenever the shelf changes.
+
         :param detection_floor: the confidence below which nothing is kept, for
             this call only. None uses the configured defaults.
 
@@ -171,7 +178,71 @@ class RFDETRRectangleLabelsModel(ControlModel):
         if want_boxes:
             self._add_box_proposals(image, regions, width, height, name_proposals)
 
+        # Naming runs last, over every box in the frame -- detections and
+        # proposals alike. A proposal the template bank could not name is
+        # exactly the box this can name, and it costs nothing extra: the call is
+        # per frame, not per box.
+        from cascade.box_naming import BOX_NAMING_ENABLED
+
+        if BOX_NAMING_ENABLED if name_boxes is None else name_boxes:
+            self._apply_box_naming(image, regions, width, height)
+
         return regions
+
+    def _apply_box_naming(self, image, regions, width, height):
+        """Replace the SKU on every box with what the shelf itself says it is.
+
+        The class head's name is kept only where this stage declines AND the
+        detector was confident (cascade.box_naming.HEAD_FLOOR); below that the
+        box is left unnamed, which in this fork is a box the labeller has to
+        name rather than one they have to notice is wrong. A failed call is not
+        a declined one -- if the request never came back, the head's guesses
+        stay exactly as they were.
+        """
+        from cascade import box_naming
+
+        if not self.taxonomy_from_name:
+            logger.debug("box naming needs a Taxonomy control; skipping")
+            return
+        rects = [r for r in regions if r.get("type") == "rectanglelabels"]
+        if not rects:
+            return
+        boxes = [self._region_box_px(r, width, height) for r in rects]
+        named = box_naming.name_boxes(image, boxes, self.class_names)
+        if not named:
+            return
+
+        tax_by_region = {r["id"]: r for r in regions if r.get("type") == "taxonomy"}
+        stale = []
+        renamed = kept = cleared = 0
+        for i, region in enumerate(rects):
+            if i not in named:
+                continue                      # the call failed for this chunk
+            tax = tax_by_region.get(region["id"])
+            path = self.taxonomy_path_map.get(named[i]) if named[i] else None
+            if path:
+                if tax is not None:
+                    tax["value"]["taxonomy"] = [path]
+                else:
+                    regions.append({
+                        "id": region["id"],
+                        "from_name": self.taxonomy_from_name,
+                        "to_name": self.taxonomy_to_name or self.to_name,
+                        "type": "taxonomy",
+                        "value": {"taxonomy": [path]},
+                        "score": region.get("score", 0.0),
+                    })
+                renamed += 1
+            elif tax is not None:
+                if float(region.get("score") or 0.0) >= box_naming.HEAD_FLOOR:
+                    kept += 1
+                else:
+                    stale.append(id(tax))
+                    cleared += 1
+        if stale:
+            regions[:] = [r for r in regions if id(r) not in stale]
+        logger.info(f"box naming: {renamed} named, {kept} left to the class head "
+                    f"(>= {box_naming.HEAD_FLOOR}), {cleared} cleared")
 
     def _region_box_px(self, r, width, height):
         v = r["value"]

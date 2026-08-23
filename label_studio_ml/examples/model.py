@@ -55,6 +55,7 @@ class RFDETR(LabelStudioMLBase):
             if os.path.exists(ckpt):
                 run = f"unrecorded-{int(os.path.getmtime(ckpt))}"
 
+        from cascade.box_naming import BOX_NAMING_ENABLED
         from cascade.template_match import TEMPLATE_MATCHING_ENABLED
         from control_models.box_proposals import BOX_PROPOSALS_ENABLED
 
@@ -63,6 +64,7 @@ class RFDETR(LabelStudioMLBase):
             ("tags", SHELF_TAGS_ENABLED),
             ("box", BOX_PROPOSALS_ENABLED),
             ("tpl", TEMPLATE_MATCHING_ENABLED),
+            ("name", BOX_NAMING_ENABLED),
         ) if on)
         return f"{run}{flags}"
 
@@ -120,6 +122,10 @@ class RFDETR(LabelStudioMLBase):
         # bare detector for comparison. None means "use the env default".
         propose_boxes = (context or {}).get("propose_boxes")
         name_proposals = (context or {}).get("name_proposals")
+        # Naming every box from the shelf itself is likewise its own axis: it is
+        # the one stage that works on a store nothing has been labelled in, and
+        # the one that costs a paid call per frame, so a run gets to choose.
+        name_boxes = (context or {}).get("name_boxes")
         logger.info(
             f"Run prediction on {len(tasks)} tasks, project ID = {self.project_id}, "
             f"cascade_mode={cascade_mode}, detection_floor={detection_floor}"
@@ -133,7 +139,8 @@ class RFDETR(LabelStudioMLBase):
                 path = model.get_path(task)
                 regions += model.predict_regions(
                     path, cascade_mode=cascade_mode, detection_floor=detection_floor,
-                    propose_boxes=propose_boxes, name_proposals=name_proposals
+                    propose_boxes=propose_boxes, name_proposals=name_proposals,
+                    name_boxes=name_boxes
                 )
 
             all_scores = [r["score"] for r in regions if "score" in r]

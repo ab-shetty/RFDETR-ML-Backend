@@ -117,6 +117,53 @@ pipeline offline as labelling work (boxes to draw, strays to delete, names to
 fix) rather than as mAP. Read its caveats before quoting any number from it:
 most of the current eval data overlaps the training set.
 
+## Naming boxes from the shelf (`cascade/box_naming.py`, `BOX_NAMING_ENABLED`)
+
+The class head learns SKU names from labelled shelves, so it names a store it has
+never seen about as well as its training data allows: on the two held-out visits
+it got **51%** of the boxes it found right, and most of that came from a narrow
+high-confidence band. The shelf tag under each product names it independently of
+any training data — the store reprints it whenever the shelf changes.
+
+An earlier attempt used tags by reading them in isolation and working out which
+box each named from its position. That pairing became the dominant error (dense
+shelves, approximate coordinates, most wrong names landing one slot over), and
+capped the whole path at 30–45%. Drawing the numbered boxes on the frame removes
+the pairing step: the question stops being "where is this tag" and becomes "what
+is in box 7", which the model answers from the tag *and* the packaging.
+
+Measured against human labels on both held-out store visits
+(`scripts/eval_box_naming.py`):
+
+| | class head | tags paired by geometry | boxes drawn on the frame |
+|---|---|---|---|
+| Coppell (sharp footage) | 51% | 45% | **87%** |
+| Laguna (soft footage)   | 51% | 19% | **73%** |
+
+`scripts/eval_naming_gate.py` answers whether the class head is still worth
+consulting: it only catches up above ~0.6 confidence, which is a quarter of its
+boxes, and of 183 disagreements the vision model was right in 160. So the head's
+name is kept **only** where this stage declines *and* the detector was confident
+(`BOX_NAMING_HEAD_FLOOR`, default 0.8). Below that the box is left unnamed —
+work the labeller does, rather than a wrong name they have to notice.
+
+Runs last, over detections and proposals alike, so a proposal the template bank
+could not name is named here at no extra cost (one call per frame, not per box,
+~$0.01). `gpt-5.6-terra` rather than the cheaper Luna because the tags are often
+handwritten, which is a capability-tier failure for nano-tier models — the same
+finding `scripts/build_tag_index.py` documents for the reader. A failed call is
+not a declined one: if the request never comes back, the head's guesses stay.
+
+Both harnesses score naming on ground-truth boxes, so they measure naming in
+isolation; `--boxes detector` runs the production condition, where a missed
+facing is never named and a stray one is named for nothing.
+
+**`tag_class_map.json` is retired by this.** It resolved half the tags on Laguna
+and got three quarters of those wrong (`'APPLE JUICE' -> 'Matcha Green Tea'`):
+it was built by pairing tags to already-labelled boxes on one visit, so that
+pairing's noise was baked in as majority votes, and it can only ever name SKUs
+somebody already labelled. `SHELF_TAGS_ENABLED` stays off.
+
 ## Verification cascade (OCR + embedding match + gpt-5.6-luna)
 
 Per-class thresholds alone can't fix a class the model barely has data for — no threshold rescues a detector that's never learned to recognize something reliably. The cascade adds two cheap, fast signals plus a gpt-5.6-luna tiebreaker used only when they disagree, filtering junk detections *before* they become Label Studio pre-annotations rather than after a human deletes them:

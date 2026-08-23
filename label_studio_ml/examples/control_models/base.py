@@ -232,6 +232,8 @@ class ControlModel(BaseModel):
         Checkpoints predating `model_name` (the July one) get the original
         hand-configured Base, which is what they were trained as.
         """
+        import math
+
         import torch
 
         path = os.path.join(MODEL_ROOT, filename)
@@ -241,10 +243,30 @@ class ControlModel(BaseModel):
         model_name = ckpt.get("model_name")
         state = ckpt.get("state_dict") or ckpt.get("model") or {}
         head_width = None
+        # Resolution has to be read for the same reason as the head width, and
+        # rfdetr does NOT record it in the checkpoint's `args`. Constructing the
+        # model without it falls back to the class default (384 for nano), so a
+        # checkpoint trained at 768 would be served at less than a third of the
+        # pixels it learned on -- no error, just quietly worse predictions, and
+        # worst on exactly the fine packaging detail the SKU model exists to
+        # read. The weights record it indirectly: one position embedding per
+        # patch (plus a cls token), and the patch projection kernel is the patch
+        # size.
+        n_pos = patch = None
         for key, value in state.items():
             if "class_embed" in key and key.endswith("weight") and getattr(value, "ndim", 0) == 2:
-                head_width = int(value.shape[0])
-                break
+                head_width = head_width or int(value.shape[0])
+            elif key.endswith("embeddings.position_embeddings") and getattr(value, "ndim", 0) == 3:
+                n_pos = int(value.shape[1])
+            elif key.endswith("patch_embeddings.projection.weight") and getattr(value, "ndim", 0) == 4:
+                patch = int(value.shape[-1])
+        resolution = None
+        if n_pos and patch:
+            for n in (n_pos, n_pos - 1):     # with and without a cls token
+                g = math.isqrt(n)
+                if g * g == n:
+                    resolution = g * patch
+                    break
         del ckpt, state
         if head_width is None:
             raise RuntimeError(f"no classification head found in {path} -- is it an RF-DETR checkpoint?")
@@ -256,7 +278,7 @@ class ControlModel(BaseModel):
             )
 
         logger.info(f"Loading RF-DETR model from: {path} ({model_name or 'pre-1.9.2 checkpoint'}, "
-                    f"{head_width}-wide head)")
+                    f"{head_width}-wide head, resolution {resolution or 'default'})")
         if model_name:
             import rfdetr
 
@@ -264,7 +286,8 @@ class ControlModel(BaseModel):
             if model_cls is None:
                 raise RuntimeError(f"{path} names architecture {model_name!r}, which this "
                                    f"rfdetr install does not provide")
-            model = model_cls(pretrain_weights=path, num_classes=head_width - 1)
+            model = model_cls(pretrain_weights=path, num_classes=head_width - 1,
+                              **({"resolution": resolution} if resolution else {}))
         else:
             from rfdetr import RFDETRBase
 

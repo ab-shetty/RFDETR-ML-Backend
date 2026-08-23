@@ -1,7 +1,7 @@
 import logging
 
 from PIL import Image
-from control_models.base import CASCADE_ENABLED, CASCADE_FLOOR, SHELF_TAGS_ENABLED, ControlModel
+from control_models.base import CASCADE_ENABLED, CASCADE_FLOOR, ControlModel
 from typing import List, Dict, Optional
 
 
@@ -52,10 +52,10 @@ class RFDETRRectangleLabelsModel(ControlModel):
         name_boxes: Optional[bool] = None,
     ) -> List[Dict]:
         """
-        :param cascade_mode: "off" | "cascade" | "cascade_shelf_tags", or None
-            to use this process's CASCADE_ENABLED/SHELF_TAGS_ENABLED env vars
-            (the default for every caller except the "Retrieve Predictions"
-            UI action, which lets a user override it per run).
+        :param cascade_mode: "off" | "cascade", or None to use this process's
+            CASCADE_ENABLED env var (the default for every caller except the
+            "Retrieve Predictions" UI action, which lets a user override it per
+            run).
         :param name_boxes: name every box by showing the drawn boxes to a vision
             model (see cascade/box_naming.py), overriding the class head's
             guesses. None uses BOX_NAMING_ENABLED. This is the naming stage for
@@ -82,12 +82,7 @@ class RFDETRRectangleLabelsModel(ControlModel):
         image = Image.open(path).convert("RGB")
         width, height = image.size
 
-        if cascade_mode is None:
-            cascade_enabled = CASCADE_ENABLED
-            shelf_tags_enabled = SHELF_TAGS_ENABLED
-        else:
-            cascade_enabled = cascade_mode in ("cascade", "cascade_shelf_tags")
-            shelf_tags_enabled = cascade_mode == "cascade_shelf_tags"
+        cascade_enabled = CASCADE_ENABLED if cascade_mode is None else cascade_mode == "cascade"
 
         cascade_floor = detection_floor if detection_floor is not None else CASCADE_FLOOR
 
@@ -164,14 +159,9 @@ class RFDETRRectangleLabelsModel(ControlModel):
         # name. Do it before anything else consumes the boxes.
         self._dedupe_cross_class(image, regions)
 
-        if shelf_tags_enabled and self.tag_class_map:
-            self._apply_tag_corrections(image, regions)
-
         # Boxes the SKU model never drew, added unnamed, then named by template
         # match where the bank is confident. Measured on held-out clips these
-        # two take the labeller from drawing 4.4 boxes an image to 0.9. Order
-        # matters: proposals arrive after tag correction so a stale tag map
-        # cannot name a box that nothing else has looked at yet.
+        # two take the labeller from drawing 4.4 boxes an image to 0.9.
         from control_models.box_proposals import BOX_PROPOSALS_ENABLED
 
         want_boxes = BOX_PROPOSALS_ENABLED if propose_boxes is None else propose_boxes
@@ -412,55 +402,3 @@ class RFDETRRectangleLabelsModel(ControlModel):
             })
         return out
 
-    def _apply_tag_corrections(self, image, regions) -> None:
-        """Correct the SKU (taxonomy) on each box using the shelf tag in its
-        column. RF-DETR/the cascade localize the box; the shelf tag — the
-        store's own label — names the product, which is the harder part and
-        where the detector is weakest.
-
-        Measured on held-out frames this raised class-aware precision (and
-        recall on test) with no extra boxes, unlike proposing new boxes on top
-        of the cascade, which mostly added false positives (see the PR history).
-        Proposing new boxes from tags (propose_from_tags in cascade/shelf_tags)
-        is kept as a utility for the low-recall regime where the cascade is off.
-        """
-        from cascade.shelf_tags import detect_tags, lookup_class
-
-        tags = detect_tags(image)
-        if not tags:
-            return
-        name_to_id = {n: i for i, n in enumerate(self.class_names)}
-        # taxonomy results share their box's id (see _emit_regions)
-        tax_by_region = {r["id"]: r for r in regions if r.get("type") == "taxonomy"}
-
-        for r in regions:
-            if r.get("type") != "rectanglelabels":
-                continue
-            v = r["value"]
-            cx = (v["x"] + v["width"] / 2) / 100.0
-            cy = (v["y"] + v["height"] / 2) / 100.0
-            # tag sits just below the box center, same column
-            near = [t for t in tags if abs(t["x"] - cx) < 0.09 and 0 < (t["y"] - cy) < 0.13]
-            if not near:
-                continue
-            tag = min(near, key=lambda t: t["y"] - cy)
-            cls = lookup_class(tag["name"], self.tag_class_map)
-            if not cls or cls not in name_to_id:
-                continue
-            tax_path = self._get_taxonomy_path(name_to_id[cls])
-            if not tax_path:
-                continue
-            existing = tax_by_region.get(r["id"])
-            if existing:
-                if existing["value"].get("taxonomy") != [tax_path]:
-                    logger.debug(f"Shelf-tag corrected SKU to '{cls}' (tag '{tag['name']}')")
-                    existing["value"]["taxonomy"] = [tax_path]
-            elif self.taxonomy_from_name:
-                regions.append({
-                    "id": r["id"],
-                    "from_name": self.taxonomy_from_name,
-                    "to_name": self.taxonomy_to_name or self.to_name,
-                    "type": "taxonomy",
-                    "value": {"taxonomy": [tax_path]},
-                    "score": r.get("score", 0.5),
-                })

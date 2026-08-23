@@ -1,35 +1,36 @@
-"""Shelf-tag proposer — the piece that catches products RF-DETR never boxes.
+"""Reads the price tags off a shelf: one vision call, every tag with a position.
 
-Grocery shelf price tags name the product in each slot. They're a strong,
-independent classification signal, especially for items with no readable
-on-package text. But the tag text is the store's abbreviated/marketing
-wording ("VANILLA LATTE"), not the catalog class name ("La Colombe® Vanilla
-Cold Brew Draft Latte"), so the tag->class mapping is *learned* from labeled
-frames rather than fuzzy-matched to the taxonomy.
+Grocery shelf tags name the product in each slot, independently of anything we
+have labelled, which makes them the one naming signal that still works in a
+store the detector has never seen. Tesseract cannot read these stylized,
+cluttered retail frames; a vision model can.
 
-Findings that shaped this (see the exploration in the PR history):
-  - Tesseract can't read these stylized, cluttered retail frames; a
-    vision model (gpt-5-mini) reads the tags reliably.
-  - One vision call per frame enumerates every tag with a position, which
-    is what lets us pair each tag to the product box directly above it.
+This module is now just the reader. What used to sit on top of it -- mapping a
+read tag to a class through `tag_class_map.json` and correcting SKUs with it --
+was removed after being measured against the human labels for two held-out store
+visits (`scripts/eval_tag_naming.py`): it resolved half the tags and got three
+quarters of those wrong, because the map was built by pairing tags to labelled
+boxes on ONE visit and that pairing's noise became majority votes. Worse, it
+could only ever name SKUs somebody had already labelled -- the opposite of what
+the signal is for.
 
-Pipeline:
-  build_tag_class_map.py  (offline) : detect tags on labeled frames, pair
-      each to the labeled box above it, aggregate -> tag_class_map.json
-  detect_tags()           (runtime) : vision call -> [{name, x, y}]
-  lookup_class()          (runtime) : fuzzy-match a read tag to the map
-  propose_from_tags()     (runtime) : for tags whose column has no accepted
-      detection, emit a box for the slot above the tag with the mapped class
+`cascade/box_naming.py` replaces it, and does not pair tags to boxes at all: it
+draws the boxes on the frame and asks what is in each, which is the question the
+pairing was a proxy for.
+
+Still used here:
+  detect_tags()   vision call -> [{name, x, y}], x/y normalized centers
+  normalize_tag() canonical form for tag text (strips prices, uppercases)
+  _slot_box()     the slot above a tag, for scripts/bootstrap_zero_data_classes.py
 """
 import base64
 import io
 import json
 import logging
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from PIL import Image
-from rapidfuzz import fuzz, process
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,6 @@ _client = None
 SLOT_TOP_OFFSET = 0.09     # how far above the tag the slot reaches
 SLOT_BOTTOM_OFFSET = 0.0   # slot bottom sits at the tag line
 SLOT_HALF_WIDTH = 0.06
-FUZZY_MIN_SCORE = 82       # min rapidfuzz score to accept a tag->map match
 
 
 def _get_client():
@@ -110,34 +110,6 @@ def normalize_tag(text: str) -> str:
     return " ".join(text.upper().split())
 
 
-def load_tag_class_map(path: str) -> Dict[str, str]:
-    """Load {normalized_tag_text -> class} (majority class per tag) from the
-    JSON produced by build_tag_class_map.py. Returns {} if absent.
-    """
-    if not os.path.exists(path):
-        logger.info(f"No tag->class map at {path} — shelf-tag proposer disabled.")
-        return {}
-    with open(path) as f:
-        raw = json.load(f)
-    # raw is {tag: {class: count}} -> pick the majority class per tag
-    return {tag: max(counts.items(), key=lambda kv: kv[1])[0] for tag, counts in raw.items()}
-
-
-def lookup_class(tag_text: str, tag_class_map: Dict[str, str]) -> Optional[str]:
-    """Map a freshly-read tag to a class via exact-then-fuzzy match on the
-    learned keys. Returns None if nothing clears FUZZY_MIN_SCORE.
-    """
-    if not tag_class_map:
-        return None
-    key = normalize_tag(tag_text)
-    if key in tag_class_map:
-        return tag_class_map[key]
-    match = process.extractOne(key, tag_class_map.keys(), scorer=fuzz.token_sort_ratio)
-    if match and match[1] >= FUZZY_MIN_SCORE:
-        return tag_class_map[match[0]]
-    return None
-
-
 def _slot_box(tag_x: float, tag_y: float, width: int, height: int):
     """Propose a pixel box for the product slot above a tag center."""
     x1 = max(0.0, tag_x - SLOT_HALF_WIDTH) * width
@@ -145,31 +117,3 @@ def _slot_box(tag_x: float, tag_y: float, width: int, height: int):
     y2 = max(0.0, tag_y - SLOT_BOTTOM_OFFSET) * height
     y1 = max(0.0, tag_y - SLOT_TOP_OFFSET) * height
     return [x1, y1, x2, y2]
-
-
-def propose_from_tags(
-    image: Image.Image,
-    tag_class_map: Dict[str, str],
-    covered_centers: List,
-    cover_dist: float = 0.06,
-) -> List[Dict]:
-    """Emit {class_name, box, tag} proposals for tags whose slot isn't already
-    covered by an accepted detection. `covered_centers` is a list of (x,y)
-    normalized centers of boxes already kept (from RF-DETR / the cascade).
-    """
-    if not tag_class_map:
-        return []
-    width, height = image.size
-    proposals = []
-    for tag in detect_tags(image):
-        cls = lookup_class(tag["name"], tag_class_map)
-        if cls is None:
-            continue
-        tx, ty = float(tag["x"]), float(tag["y"])
-        slot_cx, slot_cy = tx, ty - (SLOT_TOP_OFFSET + SLOT_BOTTOM_OFFSET) / 2
-        # skip if an accepted detection already sits in this slot
-        if any(abs(cx - slot_cx) < cover_dist and abs(cy - slot_cy) < SLOT_TOP_OFFSET
-               for cx, cy in covered_centers):
-            continue
-        proposals.append({"class_name": cls, "box": _slot_box(tx, ty, width, height), "tag": tag["name"]})
-    return proposals

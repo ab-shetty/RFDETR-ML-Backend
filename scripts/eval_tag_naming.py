@@ -7,10 +7,11 @@ under the product names it too, and the store prints a new tag whenever it
 changes what is on the shelf -- so tags are the one naming signal that does not
 go stale when we walk into a new store.
 
-Today that signal is wasted, for a structural reason: `lookup_class` resolves a
-tag against `tag_class_map.json`, which is *learned by pairing tags to already
-labelled boxes*. A tag for a SKU nobody has labelled yet has no key, so it
-resolves to nothing. The map can only name what is already named.
+This first measured the learned `tag_class_map.json` -- built by pairing tags to
+already-labelled boxes -- and found it resolved 50% of Laguna's tags with 25%
+of those right, and 81% of Coppell's with 52% right. Both the map and the stage
+that used it are gone; that column is kept only in this note, since the file it
+needs no longer exists.
 
 This measures the whole path against held-out human labels, splitting it into
 the three places it can fail, because the fix is different for each:
@@ -37,10 +38,9 @@ from rapidfuzz import fuzz, process
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "label_studio_ml", "examples"))
-from cascade.shelf_tags import (MODEL, detect_tags, load_tag_class_map,  # noqa: E402
-                                lookup_class, normalize_tag)
+from cascade.shelf_tags import MODEL, detect_tags, normalize_tag  # noqa: E402
 
-FUZZY_MIN_SCORE = 82        # same bar lookup_class uses, so the two are comparable
+FUZZY_MIN_SCORE = 82        # the bar the retired learned map used, kept for comparability
 
 # A tag sits on the rail directly below its product. These bound "directly":
 # the product's bottom edge must be above the tag and within PAIR_MAX_ABOVE of
@@ -178,12 +178,9 @@ def llm_resolve(tag_texts, class_names, cache_path, model, batch=RESOLVE_BATCH):
     return {k.split("|", 1)[1]: v for k, v in cache.items() if k.startswith(model + "|")}
 
 
-def resolvers(tag_map, class_names, llm_map=None):
+def resolvers(class_names, llm_map=None):
     """{name: fn(tag_text) -> (class_or_None, note)} for the strategies compared."""
     norm_classes = {normalize_tag(c): c for c in class_names}
-
-    def by_map(text):
-        return lookup_class(text, tag_map), None
 
     def by_fuzzy(text):
         m = process.extractOne(normalize_tag(text), list(norm_classes),
@@ -194,7 +191,7 @@ def resolvers(tag_map, class_names, llm_map=None):
         # is a threshold problem, a top-1 that is wrong is a matching problem.
         return (norm_classes[m[0]] if m[1] >= FUZZY_MIN_SCORE else None), norm_classes[m[0]]
 
-    out = {"learned map": by_map, "fuzzy vs master list": by_fuzzy}
+    out = {"fuzzy vs master list": by_fuzzy}
     if llm_map is not None:
         out["llm vs master list"] = lambda text: (llm_map.get(normalize_tag(text)), None)
     return out
@@ -206,8 +203,6 @@ def main():
     ap.add_argument("--dataset", required=True)
     ap.add_argument("--splits", nargs="+", default=["valid", "test"])
     ap.add_argument("--cache", default=os.path.join(HERE, "..", "data", "tag_reads.json"))
-    ap.add_argument("--tag-map", default=os.path.join(
-        os.path.dirname(HERE), "label_studio_ml", "examples", "models", "tag_class_map.json"))
     ap.add_argument("--read", action="store_true", help="make the vision calls for any "
                                                         "frame not already cached")
     ap.add_argument("--limit", type=int, help="cap frames read per split (for a cheap probe)")
@@ -231,9 +226,6 @@ def main():
     else:
         raise SystemExit(f"no cached reads at {cache_path} -- run once with --read")
 
-    tag_map = load_tag_class_map(args.tag_map)
-    print(f"\ntag_class_map: {len(tag_map)} learned keys")
-
     for split in args.splits:
         files, gt, class_names = load_split(args.dataset, split)
         llm_map = None
@@ -244,7 +236,7 @@ def main():
                   f"{args.resolve_model}")
             llm_map = llm_resolve(texts, class_names, os.path.abspath(args.resolve_cache),
                                   args.resolve_model)
-        strategies = resolvers(tag_map, class_names, llm_map)
+        strategies = resolvers(class_names, llm_map)
         read = [f for f in files if f"{split}/{f}" in cache]
         if not read:
             continue

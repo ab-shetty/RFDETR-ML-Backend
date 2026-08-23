@@ -29,9 +29,6 @@ CASCADE_ENABLED = os.getenv("CASCADE_ENABLED", "false").lower() in ["1", "true"]
 CASCADE_FLOOR = float(os.getenv("CASCADE_FLOOR", 0.15))
 # Shelf-tag proposer: catches products RF-DETR never boxes by reading the
 # shelf price tags and mapping them to classes (see cascade/shelf_tags.py).
-# Independent of CASCADE_ENABLED; needs models/tag_class_map.json (built by
-# scripts/build_tag_class_map.py) and OPENAI_API_KEY.
-SHELF_TAGS_ENABLED = os.getenv("SHELF_TAGS_ENABLED", "false").lower() in ["1", "true"]
 
 # Global cache: path -> (model, class_names)
 _model_cache = {}
@@ -139,7 +136,6 @@ class ControlModel(BaseModel):
     # corresponding build_*.py script has been run for this model).
     expected_text: Dict[str, Optional[str]] = {}
     reference_gallery: Dict[str, object] = {}
-    tag_class_map: Dict[str, str] = {}
     label_map: Optional[Dict[str, str]] = {}
     label_studio_ml_backend: LabelStudioMLBase
     project_id: Optional[str] = None
@@ -167,15 +163,12 @@ class ControlModel(BaseModel):
         model, class_names = cls.get_cached_model(model_path)
         class_thresholds = load_class_thresholds(os.path.join(MODEL_ROOT, model_path))
         model_dir = os.path.dirname(os.path.join(MODEL_ROOT, model_path))
-        expected_text, reference_gallery, tag_class_map = {}, {}, {}
+        expected_text, reference_gallery = {}, {}
         if CASCADE_ENABLED:
             from cascade.ocr import load_expected_text
             from cascade.embedding_match import load_reference_gallery
             expected_text = load_expected_text(os.path.join(model_dir, "ocr_expected_text.json"))
             reference_gallery = load_reference_gallery(os.path.join(model_dir, "reference_gallery.npz"))
-        if SHELF_TAGS_ENABLED:
-            from cascade.shelf_tags import load_tag_class_map
-            tag_class_map = load_tag_class_map(os.path.join(model_dir, "tag_class_map.json"))
         label_map = mlbackend.build_label_map(from_name, class_names)
 
         # Detect a perRegion Taxonomy to auto-populate SKU predictions
@@ -199,7 +192,6 @@ class ControlModel(BaseModel):
             class_thresholds=class_thresholds,
             expected_text=expected_text,
             reference_gallery=reference_gallery,
-            tag_class_map=tag_class_map,
             label_map=label_map,
             label_studio_ml_backend=mlbackend,
             project_id=mlbackend.project_id,

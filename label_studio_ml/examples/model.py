@@ -41,7 +41,7 @@ class RFDETR(LabelStudioMLBase):
         import json
         import os
 
-        from control_models.base import CASCADE_ENABLED, MODEL_ROOT, SHELF_TAGS_ENABLED
+        from control_models.base import CASCADE_ENABLED, MODEL_ROOT
 
         run = "unknown-run"
         deployed = os.path.join(MODEL_ROOT, "deployed.json")
@@ -61,7 +61,6 @@ class RFDETR(LabelStudioMLBase):
 
         flags = "".join(f"+{n}" for n, on in (
             ("cascade", CASCADE_ENABLED),
-            ("tags", SHELF_TAGS_ENABLED),
             ("box", BOX_PROPOSALS_ENABLED),
             ("tpl", TEMPLATE_MATCHING_ENABLED),
             ("name", BOX_NAMING_ENABLED),
@@ -104,8 +103,8 @@ class RFDETR(LabelStudioMLBase):
         return control_models
 
     def predict(self, tasks: List[Dict], context: Optional[Dict] = None, **kwargs) -> ModelResponse:
-        # cascade_mode ("off" | "cascade" | "cascade_shelf_tags"), when present,
-        # overrides the CASCADE_ENABLED/SHELF_TAGS_ENABLED env vars for this
+        # cascade_mode ("off" | "cascade"), when present, overrides the
+        # CASCADE_ENABLED env var for this
         # call only -- see Label Studio's "Retrieve Predictions" action
         # (data_manager/actions/basic.py), which is the only caller that sets
         # it. Absent (None), predict_regions falls back to the env-var

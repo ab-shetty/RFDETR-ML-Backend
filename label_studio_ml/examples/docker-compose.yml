@@ -31,8 +31,6 @@ services:
       # reference_gallery.npz exist in ./models (scripts/build_ocr_expected_text.py,
       # scripts/build_reference_gallery.py).
       - CASCADE_ENABLED=${CASCADE_ENABLED:-false}
-      # Shelf-tag SKU-correction (needs models/tag_class_map.json + OPENAI_API_KEY)
-      - SHELF_TAGS_ENABLED=${SHELF_TAGS_ENABLED:-false}
       - CASCADE_FLOOR=${CASCADE_FLOOR:-0.15}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     extra_hosts:

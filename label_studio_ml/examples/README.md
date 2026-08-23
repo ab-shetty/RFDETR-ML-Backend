@@ -158,11 +158,16 @@ Both harnesses score naming on ground-truth boxes, so they measure naming in
 isolation; `--boxes detector` runs the production condition, where a missed
 facing is never named and a stray one is named for nothing.
 
-**`tag_class_map.json` is retired by this.** It resolved half the tags on Laguna
-and got three quarters of those wrong (`'APPLE JUICE' -> 'Matcha Green Tea'`):
-it was built by pairing tags to already-labelled boxes on one visit, so that
-pairing's noise was baked in as majority votes, and it can only ever name SKUs
-somebody already labelled. `SHELF_TAGS_ENABLED` stays off.
+**`tag_class_map.json` is gone, along with the stage that used it.** It resolved
+half the tags on Laguna and got three quarters of those wrong (`'APPLE JUICE' ->
+'Matcha Green Tea'`): built by pairing tags to already-labelled boxes on one
+visit, so that pairing's noise became majority votes, and structurally unable to
+name a SKU nobody had labelled yet. Removed rather than left switchable —
+`SHELF_TAGS_ENABLED`, `_apply_tag_corrections`, `lookup_class`,
+`propose_from_tags`, `build_tag_class_map.py` and the map itself. What survives
+is `cascade/shelf_tags.detect_tags`, the reader, which is still the cheapest way
+to find out what is on a shelf; `scripts/eval_tag_naming.py` is the record of why
+the rest went.
 
 ## Verification cascade (OCR + embedding match + gpt-5.6-luna)
 

@@ -42,7 +42,6 @@ from control_models.base import MODEL_SCORE_THRESHOLD, ControlModel, load_class_
 from cascade.embedding_match import get_backbone_nn_module, load_reference_gallery  # noqa: E402
 from cascade.ocr import load_expected_text  # noqa: E402
 from cascade.pipeline import Decision, verify_detection  # noqa: E402
-from cascade.shelf_tags import detect_tags, load_tag_class_map, lookup_class  # noqa: E402
 
 # Same loose center-match tolerance the earlier evals used, so numbers are
 # comparable to the ones recorded in the commit history.
@@ -64,7 +63,7 @@ def score(kept, gt):
     return hit_gt, tp_boxes, len(kept)
 
 
-def collect(split, model, class_names, thr, et, gal, tagm, nn, min_floor, stats):
+def collect(split, model, class_names, thr, et, gal, nn, min_floor, stats):
     """One pass per image at the lowest floor; returns per-image records that
     every floor in the sweep can be derived from."""
     d = os.path.join(DATA_ROOT, split)
@@ -86,8 +85,6 @@ def collect(split, model, class_names, thr, et, gal, tagm, nn, min_floor, stats)
         gtn = [(n, (c[0] / W, c[1] / H)) for n, c in gt.get(img_id, [])]
 
         det = model.predict(img, threshold=min_floor)
-        tags = detect_tags(img)  # floor-independent: one vision call per image
-        stats["tag_calls"] += 1
 
         dets = []
         for i in range(len(det.xyxy)):
@@ -112,34 +109,26 @@ def collect(split, model, class_names, thr, et, gal, tagm, nn, min_floor, stats)
                 cascade_floor=0.0,
             )
             stats["verify_calls"] += 1
-            # SKU correction from the shelf tag in this box's column
-            near = [t for t in tags if abs(t["x"] - c[0]) < 0.09 and 0 < (t["y"] - c[1]) < 0.13]
-            corrected = nm
-            if near:
-                tcls = lookup_class(min(near, key=lambda t: t["y"] - c[1])["name"], tagm)
-                if tcls:
-                    corrected = tcls
-            dets.append({"name": nm, "corrected": corrected, "conf": sc, "eff": eff, "c": c, "dec": dec})
+            dets.append({"name": nm, "conf": sc, "eff": eff, "c": c, "dec": dec})
         records.append({"gt": gtn, "dets": dets})
     return records
 
 
 def evaluate(records, floor):
     """Derive metrics at `floor` from the single-pass records."""
-    agg = {m: {"hit": 0, "tp": 0, "kept": 0} for m in ("rf", "casc", "full")}
+    agg = {m: {"hit": 0, "tp": 0, "kept": 0} for m in ("rf", "casc")}
     ngt = 0
     for rec in records:
         gtn = rec["gt"]
         ngt += len(gtn)
-        rf, casc, full = [], [], []
+        rf, casc = [], []
         for d in rec["dets"]:
             if d["conf"] >= d["eff"]:
                 rf.append((d["name"], d["c"]))
             # the only place the floor enters the cascade's decision
             if d["conf"] >= floor and d["dec"] != Decision.AUTO_REJECT:
                 casc.append((d["name"], d["c"]))
-                full.append((d["corrected"], d["c"]))
-        for key, kept in (("rf", rf), ("casc", casc), ("full", full)):
+        for key, kept in (("rf", rf), ("casc", casc)):
             hit, tp, n = score(kept, gtn)
             agg[key]["hit"] += hit
             agg[key]["tp"] += tp
@@ -160,32 +149,31 @@ def main():
     thr = load_class_thresholds(os.path.join(MODEL_ROOT, "checkpoint_best_total.pth"))
     et = load_expected_text(os.path.join(MODEL_ROOT, "ocr_expected_text.json"))
     gal = load_reference_gallery(os.path.join(MODEL_ROOT, "reference_gallery.npz"))
-    tagm = load_tag_class_map(os.path.join(MODEL_ROOT, "tag_class_map.json"))
     nn = get_backbone_nn_module(model)
 
-    stats = {"tag_calls": 0, "verify_calls": 0}
+    stats = {"verify_calls": 0}
     for split in splits:
         if not os.path.exists(os.path.join(DATA_ROOT, split)):
             print(f"(skipping {split}: not found)")
             continue
-        records = collect(split, model, class_names, thr, et, gal, tagm, nn, min_floor, stats)
+        records = collect(split, model, class_names, thr, et, gal, nn, min_floor, stats)
         _, ngt = evaluate(records, min_floor)
         nimg = len(records)
         print(f"\n=== {split.upper()} — {nimg} images, {ngt} GT objects, loose center match (CT={CT}) ===")
-        print(f"{'floor':>6}  {'cascade R':>9} {'cascade P':>9}  {'+tag R':>7} {'+tag P':>7}  {'kept':>5}")
+        print(f"{'floor':>6}  {'cascade R':>9} {'cascade P':>9}  {'kept':>5}")
         for floor in floors:
             agg, ngt = evaluate(records, floor)
-            c, f = agg["casc"], agg["full"]
+            c = agg["casc"]
             print(
                 f"{floor:>6.2f}  {c['hit']/max(ngt,1):>9.3f} {c['tp']/max(c['kept'],1):>9.3f}"
-                f"  {f['hit']/max(ngt,1):>7.3f} {f['tp']/max(f['kept'],1):>7.3f}  {f['kept']:>5}"
+                f"  {c['kept']:>5}"
             )
         rf = evaluate(records, min_floor)[0]["rf"]
         print(
             f"  baseline RF-DETR+thresholds (floor-independent): "
             f"R={rf['hit']/max(ngt,1):.3f} P={rf['tp']/max(rf['kept'],1):.3f} (kept {rf['kept']})"
         )
-    print(f"\nAPI usage: {stats['tag_calls']} tag-reading calls, {stats['verify_calls']} verify_detection calls")
+    print(f"\nAPI usage: {stats['verify_calls']} verify_detection calls")
 
 
 if __name__ == "__main__":

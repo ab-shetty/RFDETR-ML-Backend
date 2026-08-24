@@ -39,3 +39,23 @@ def test_load_class_thresholds_shared_across_models_in_same_dir(tmp_path):
     model_b.write_bytes(b"")
     assert load_class_thresholds(str(model_a)) == {"Apple": 0.4}
     assert load_class_thresholds(str(model_b)) == {"Apple": 0.4}
+
+
+def test_check_query_rows_passes_when_lengths_match():
+    """3900 = 300 queries x 13 groups, checkpoint and build agreeing -- the flat
+    slice rfdetr warns about is an identity here."""
+    from control_models.base import check_query_rows
+
+    check_query_rows("ckpt.pth", 3900, 3900)
+    check_query_rows("ckpt.pth", None, 3900)      # nothing read, nothing to check
+
+
+def test_check_query_rows_refuses_a_shorter_build():
+    """A build with fewer queries would have rfdetr truncate 3900 rows to 1300,
+    taking whole groups 0-3 as if they were one query set. Silent otherwise."""
+    import pytest
+
+    from control_models.base import check_query_rows
+
+    with pytest.raises(RuntimeError, match="scrambling the query groups"):
+        check_query_rows("ckpt.pth", 3900, 1300)

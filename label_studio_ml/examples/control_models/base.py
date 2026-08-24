@@ -117,6 +117,31 @@ def find_per_region_taxonomy(label_interface) -> tuple[Optional[str], Optional[s
     return None, None
 
 
+def check_query_rows(path, ckpt_rows, built_rows):
+    """Fail rather than let rfdetr flat-slice the query embeddings.
+
+    On load rfdetr warns that it is "falling back to flat slice", because our
+    checkpoints record no args.num_queries / args.group_detr. That fallback is
+    only WRONG when the model is built with fewer queries than the checkpoint
+    has: LWDETR packs them as num_queries * group_detr, so a flat truncation
+    takes the tail of group 0 as if it were group 1. Equal lengths make the
+    slice an identity and the warning noise -- which is the case today, 3900 =
+    300 queries x 13 groups on both sides.
+
+    Checked rather than trusted because the failure is silent: a variant with
+    100 queries (the seg configs), or a future change to the nano default,
+    would scramble the queries with no error and no obvious symptom, just a
+    detector that quietly got worse.
+    """
+    if ckpt_rows is None or built_rows is None or ckpt_rows == built_rows:
+        return
+    raise RuntimeError(
+        f"{path} has {ckpt_rows} query embeddings but this build wants {built_rows}. "
+        f"rfdetr would flat-slice them, scrambling the query groups (they are packed "
+        f"num_queries * group_detr). Build the variant this checkpoint was trained as, "
+        f"or record num_queries/group_detr in its args.")
+
+
 class ControlModel(BaseModel):
     """Base class for RF-DETR control tag models."""
 
@@ -244,7 +269,7 @@ class ControlModel(BaseModel):
         # read. The weights record it indirectly: one position embedding per
         # patch (plus a cls token), and the patch projection kernel is the patch
         # size.
-        n_pos = patch = None
+        n_pos = patch = query_rows = None
         for key, value in state.items():
             if "class_embed" in key and key.endswith("weight") and getattr(value, "ndim", 0) == 2:
                 head_width = head_width or int(value.shape[0])
@@ -252,6 +277,8 @@ class ControlModel(BaseModel):
                 n_pos = int(value.shape[1])
             elif key.endswith("patch_embeddings.projection.weight") and getattr(value, "ndim", 0) == 4:
                 patch = int(value.shape[-1])
+            elif key.endswith("refpoint_embed.weight") and getattr(value, "ndim", 0) == 2:
+                query_rows = int(value.shape[0])
         resolution = None
         if n_pos and patch:
             for n in (n_pos, n_pos - 1):     # with and without a cls token
@@ -293,6 +320,10 @@ class ControlModel(BaseModel):
                 dec_layers=2,
                 out_feature_indexes=[3, 6, 9, 12],
             )
+        built_queries = next((v.shape[0] for n, v in model.model.model.named_parameters()
+                              if n.endswith("refpoint_embed.weight")), None)
+        check_query_rows(path, query_rows, built_queries)
+
         logger.info(f"[MODEL LOADED] {path} | classes={len(class_names) if class_names else '?'}")
         logger.debug(f"[MODEL CLASSES] {path}: {class_names}")
         return model, class_names

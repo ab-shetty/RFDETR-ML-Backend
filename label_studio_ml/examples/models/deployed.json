@@ -1,11 +1,12 @@
 {
-  "run_name": "rfdetr-nano-20260812-2202-173img-236cls",
-  "run_dir": "/home/ubuntu/Datasets/trader-joes/models/rfdetr-nano-20260812-2202-173img-236cls",
-  "deployed_at": "2026-08-14T19:54:23.477640+00:00",
-  "num_classes": 236,
+  "run_name": "rfdetr-nano-20260823-0337-322img-265cls",
+  "run_dir": "/home/ubuntu/Datasets/trader-joes/models/rfdetr-nano-20260823-0337-322img-265cls",
+  "deployed_at": "2026-08-23T23:45:13.399011+00:00",
+  "num_classes": 265,
   "dataset_batches": [
-    "abhishek-3"
+    "abhishek-3",
+    "abhishek-4"
   ],
-  "categories_sha256": "e74265bf59cd82965cd00a689ff9800abe061b3a49a1fc7ead548b6caef5114f",
-  "previous": null
+  "categories_sha256": "731548103e1405cf888e23c3e29f2e07820903232f43653eec2b01bf8bc44b67",
+  "previous": "rfdetr-nano-20260812-2202-173img-236cls"
 }

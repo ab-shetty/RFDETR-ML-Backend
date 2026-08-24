@@ -78,7 +78,7 @@ Coconut Water, 1L
 To the Power of C Organic Juice Blend
 Organic Hot Cocoa Mix
 Pumpkin Spice Flavored Cold Brew Coffee
-Coconut Water
+coconut water
 Coconut Smoothie
 Very Green Juice
 La Colombe® Vanilla Cold Brew Draft Latte
@@ -216,9 +216,9 @@ Organic Tea & Lemonade
 Organic Green Tea & Lemonade
 100% Honeycrisp Apple Cider
 100% Cherry Juice
-100% Cranberry Juice
+100% Cranberrry Juice
 Organic 100% Pomegranate Juice
-Organic Fair Trade Shade Grown Ethiopian Coffee
+Organic Fair Trade Shade Grown Ethiopian Whole Bean Coffee
 Instant Coffee Packets
 Ground French Vanilla Coffee
 English Breakfast Tea
@@ -234,32 +234,3 @@ Organic Aloe Vera Juice
 Organic Aloe Vera Drink With Pulp
 Country Peach Juice
 Sparkling Honeycrisp Apple Juice Beverage
-100% Pineapple Juice 4-pack
-Synergy Gingerage Kombucha
-Natural Mountain Spring Water
-Spindrift Lemon Sparkling Water
-Spindrift Grapefruit Sparkling Water
-Spindrift Raspberry Lime Sparkling Water
-Lime Flavored Sparkling Water
-Seltzer Water flavored with Cranberry and Lime Juice
-Sparkling Lemonade
-Synergy Trilogy Kombucha
-Apple Juice
-Almond Beverage Vanilla Unsweetened
-San Pellegrino Limonata
-Seltzer Water flavored with Blood Orange and Orange Juice
-Plain Sparkling Water (Can)
-Organic Low Calorie Pink Lemonade
-Spindrift Orange Mango Sparkling Water
-Pineapple Sparkling Water
-Watermelon Cucumber Cooler
-Super Happy Cabernet Sauvignon Sangiovese & Malbec
-Charles Shaw Chardonnay
-Charles Shaw Merlot
-Sparkling Watermelon Juice
-TABLE California Red Wine
-Olive Oil Potato Chips
-Organic Apple Juice
-Sparkling Lychee Juice Beverage
-Organic No Joke Ginger Juice Shot
-Organic Energy Juice Shot
